@@ -35,7 +35,18 @@ export function ProviderCard({ provider }: { provider: Provider }) {
 
   return (
     <Link href={`/providers/${provider.id}`} className="group block">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden hover:-translate-y-0.5">
+      <div className={`bg-white rounded-xl border shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden hover:-translate-y-0.5 ${
+        provider.featured ? 'border-yellow-400 ring-1 ring-yellow-400/30' : 'border-gray-200'
+      }`}>
+        {/* Featured banner */}
+        {provider.featured && (
+          <div className="bg-gradient-to-r from-yellow-400 to-amber-400 px-3 py-1 flex items-center gap-1.5">
+            <span className="text-xs">⭐</span>
+            <span className="text-xs font-bold text-yellow-900 uppercase tracking-wide">
+              {language === 'cs' ? 'Zvýrazněný profil' : 'Featured'}
+            </span>
+          </div>
+        )}
         {/* Avatar area */}
         <div className="bg-gray-50 p-6 flex justify-center border-b border-gray-100">
           <div className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-md">
