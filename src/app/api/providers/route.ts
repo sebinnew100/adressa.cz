@@ -1,49 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
-
-async function uploadToCloudinary(buffer: Buffer, originalName: string): Promise<string> {
-  const base64 = buffer.toString('base64');
-  const ext = originalName.split('.').pop()?.toLowerCase() || 'jpg';
-  const dataUri = `data:image/${ext};base64,${base64}`;
-
-  const formData = new FormData();
-  formData.append('file', dataUri);
-  formData.append('upload_preset', 'unsigned_preset');
-  formData.append('folder', 'adresar-cz');
-
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME!;
-  const apiKey = process.env.CLOUDINARY_API_KEY!;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET!;
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-
-  const signaturePayload = `folder=adresar-cz&timestamp=${timestamp}`;
-  const crypto = await import('crypto');
-  const signature = crypto
-    .createHash('sha256')
-    .update(signaturePayload + apiSecret)
-    .digest('hex');
-
-  const uploadForm = new FormData();
-  uploadForm.append('file', dataUri);
-  uploadForm.append('folder', 'adresar-cz');
-  uploadForm.append('timestamp', timestamp);
-  uploadForm.append('api_key', apiKey);
-  uploadForm.append('signature', signature);
-  uploadForm.append('transformation', 'w_400,h_400,c_fill,g_face');
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    { method: 'POST', body: uploadForm }
-  );
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Cloudinary upload failed: ${err}`);
-  }
-
-  const data = await res.json() as { secure_url: string };
-  return data.secure_url;
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -88,8 +45,10 @@ export async function POST(request: NextRequest) {
     let picturePath: string | null = null;
 
     if (pictureFile && pictureFile.size > 0) {
-      const buffer = Buffer.from(await pictureFile.arrayBuffer());
-      picturePath = await uploadToCloudinary(buffer, pictureFile.name);
+      const ext = pictureFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filename = `profiles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const blob = await put(filename, pictureFile, { access: 'public' });
+      picturePath = blob.url;
     }
 
     const provider = await prisma.provider.create({
