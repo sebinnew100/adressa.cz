@@ -19,3 +19,5 @@ prisma/*.db
 /public/uploads/*
 !/public/uploads/.gitkeep
 serviceAccountKey.json
+
+.vercel

@@ -17,6 +17,7 @@ model Provider {
   cityId      String
   description String?
   picturePath String?
+  featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

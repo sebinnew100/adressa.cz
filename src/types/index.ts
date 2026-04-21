@@ -7,6 +7,7 @@ export interface Provider {
   cityId: string;
   description: string | null;
   picturePath: string | null;
+  featured: boolean;
   createdAt: string;
   updatedAt: string;
 }
