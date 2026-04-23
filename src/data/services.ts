@@ -33,5 +33,6 @@ export const SERVICES: Service[] = [
   { id: 'trener', nameCz: 'Osobní trenér', nameEn: 'Personal Trainer', icon: '💪', color: 'bg-green-50' },
   { id: 'prekladatel', nameCz: 'Překladatel', nameEn: 'Translator', icon: '🌐', color: 'bg-teal-50' },
   { id: 'grafik', nameCz: 'Grafický designer', nameEn: 'Graphic Designer', icon: '🎨', color: 'bg-violet-50' },
+  { id: 'ucitel', nameCz: 'Učitel / Lektor', nameEn: 'Teacher / Tutor', icon: '📚', color: 'bg-yellow-50' },
   { id: 'jine', nameCz: 'Jiné', nameEn: 'Other', icon: '🔍', color: 'bg-gray-50' },
 ];
