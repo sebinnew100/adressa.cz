@@ -11,7 +11,6 @@ export function ProviderForm() {
   const { language, t } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [needsVerification, setNeedsVerification] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -44,13 +43,6 @@ export function ProviderForm() {
 
       const provider = await res.json();
 
-      if (provider.requiresVerification) {
-        setNeedsVerification(true);
-        setSuccess(true);
-        setSubmitting(false);
-        return;
-      }
-
       // Redirect to Stripe checkout
       const checkoutRes = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -75,29 +67,13 @@ export function ProviderForm() {
   if (success) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-12 text-center">
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 ${needsVerification ? 'bg-blue-50' : 'bg-brand-light'}`}>
-          {needsVerification ? (
-            <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          ) : (
-            <svg className="w-10 h-10 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
+        <div className="w-20 h-20 bg-brand-light rounded-full flex items-center justify-center mx-auto mb-5">
+          <svg className="w-10 h-10 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
-        <h2 className="text-2xl font-bold text-ink mb-2">
-          {needsVerification
-            ? (language === 'cs' ? 'Zkontrolujte svůj e-mail' : 'Check your email')
-            : t.register.success}
-        </h2>
-        <p className="text-ink-light mb-6">
-          {needsVerification
-            ? (language === 'cs'
-                ? 'Poslali jsme vám ověřovací odkaz. Klikněte na něj pro aktivaci vašeho profilu.'
-                : 'We sent you a verification link. Click it to activate your profile.')
-            : t.register.successSub}
-        </p>
+        <h2 className="text-2xl font-bold text-ink mb-2">{t.register.success}</h2>
+        <p className="text-ink-light mb-6">{t.register.successSub}</p>
 
         {/* Boost visibility — only shown to the person who just registered */}
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">

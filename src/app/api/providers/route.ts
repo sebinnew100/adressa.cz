@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
-import { sendVerificationEmail } from '@/lib/email';
-import { randomBytes } from 'crypto';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -54,30 +52,11 @@ export async function POST(request: NextRequest) {
       picturePath = blob.url;
     }
 
-    const emailToken = randomBytes(32).toString('hex');
-
-    // Try to send verification email; if no key configured, auto-activate instead
-    const emailSent = await sendVerificationEmail(email, fullName, emailToken);
-
     const provider = await prisma.provider.create({
-      data: {
-        fullName,
-        email,
-        phone,
-        serviceId,
-        cityId,
-        description,
-        picturePath,
-        active: !emailSent,       // auto-active only when email not sent
-        emailVerified: !emailSent,
-        emailToken: emailSent ? emailToken : null,
-      },
+      data: { fullName, email, phone, serviceId, cityId, description, picturePath, active: true },
     });
 
-    return NextResponse.json(
-      { ...provider, requiresVerification: emailSent },
-      { status: 201 },
-    );
+    return NextResponse.json(provider, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '';
     if (msg.includes('Unique constraint') || msg.includes('unique')) {
