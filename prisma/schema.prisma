@@ -17,11 +17,9 @@ model Provider {
   cityId      String
   description String?
   picturePath String?
-  featured      Boolean   @default(false)
-  active        Boolean   @default(false)
-  emailVerified Boolean   @default(false)
-  emailToken    String?   @unique
-  paidUntil     DateTime?
+  featured    Boolean   @default(false)
+  active      Boolean   @default(false)
+  paidUntil   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reviews     Review[]
