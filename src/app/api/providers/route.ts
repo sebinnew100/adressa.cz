@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
 
     const fullName = (formData.get('fullName') as string | null)?.trim() ?? '';
     const email = (formData.get('email') as string | null)?.trim() ?? '';
-    const phone = (formData.get('phone') as string | null)?.trim() ?? '';
+    const phone = (formData.get('phone') as string | null)?.trim() || null;
     const serviceId = (formData.get('serviceId') as string | null) ?? '';
     const cityId = (formData.get('cityId') as string | null) ?? '';
     const description = (formData.get('description') as string | null)?.trim() || null;
     const pictureFile = formData.get('picture') as File | null;
 
-    if (!fullName || !email || !phone || !serviceId || !cityId) {
+    if (!fullName || !email || !serviceId || !cityId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
