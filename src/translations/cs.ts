@@ -75,7 +75,7 @@ export const cs = {
     submit: 'Zveřejnit profil',
     submitting: 'Ukládám...',
     success: 'Váš profil byl úspěšně zveřejněn!',
-    successSub: 'Zákazníci vás nyní mohou najít na adresar.cz',
+    successSub: 'Zákazníci vás nyní mohou najít na adressa.cz',
     successBrowse: 'Zobrazit všechny profily',
     error: 'Nastala chyba. Zkuste to prosím znovu.',
     errorEmail: 'Tento e-mail je již registrován.',

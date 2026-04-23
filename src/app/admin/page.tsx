@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <span className="text-3xl font-bold">
-            <span className="text-brand">adresar</span>
+            <span className="text-brand">adressa</span>
             <span className="text-white">.cz</span>
           </span>
           <p className="text-gray-400 mt-2 text-sm">Admin Panel</p>

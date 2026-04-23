@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get('sort') || 'name';
 
   const where = {
+    active: true,
     ...(cityId && { cityId }),
     ...(serviceId && { serviceId }),
   };
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const provider = await prisma.provider.create({
-      data: { fullName, email, phone, serviceId, cityId, description, picturePath },
+      data: { fullName, email, phone, serviceId, cityId, description, picturePath, active: true },
     });
 
     return NextResponse.json(provider, { status: 201 });

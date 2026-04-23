@@ -25,4 +25,13 @@ export const SERVICES: Service[] = [
   { id: 'kadernik', nameCz: 'Kadeřník', nameEn: 'Hairdresser', icon: '✂️', color: 'bg-rose-50' },
   { id: 'lekar', nameCz: 'Lékař', nameEn: 'Doctor', icon: '🏥', color: 'bg-emerald-50' },
   { id: 'klempir', nameCz: 'Klempíř', nameEn: 'Tinsmith', icon: '🔨', color: 'bg-lime-50' },
+  { id: 'realitni-makler', nameCz: 'Realitní makléř', nameEn: 'Real Estate Agent', icon: '🏠', color: 'bg-sky-50' },
+  { id: 'restaurace', nameCz: 'Restaurace', nameEn: 'Restaurant', icon: '🍽️', color: 'bg-orange-50' },
+  { id: 'freelancer', nameCz: 'Freelancer', nameEn: 'Freelancer', icon: '💼', color: 'bg-purple-50' },
+  { id: 'architekt', nameCz: 'Architekt', nameEn: 'Architect', icon: '🏗️', color: 'bg-blue-50' },
+  { id: 'psycholog', nameCz: 'Psycholog', nameEn: 'Psychologist', icon: '🧠', color: 'bg-pink-50' },
+  { id: 'trener', nameCz: 'Osobní trenér', nameEn: 'Personal Trainer', icon: '💪', color: 'bg-green-50' },
+  { id: 'prekladatel', nameCz: 'Překladatel', nameEn: 'Translator', icon: '🌐', color: 'bg-teal-50' },
+  { id: 'grafik', nameCz: 'Grafický designer', nameEn: 'Graphic Designer', icon: '🎨', color: 'bg-violet-50' },
+  { id: 'jine', nameCz: 'Jiné', nameEn: 'Other', icon: '🔍', color: 'bg-gray-50' },
 ];
