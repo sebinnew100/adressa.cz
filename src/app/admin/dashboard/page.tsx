@@ -21,9 +21,10 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const fetchProviders = async () => {
-    const res = await fetch('/api/providers');
+    const res = await fetch('/api/admin/providers');
     const data = await res.json();
     if (Array.isArray(data)) setProviders(data);
     setLoading(false);
@@ -57,12 +58,26 @@ export default function AdminDashboard() {
     setTogglingId(null);
   };
 
+  const handleToggleActive = async (id: string, current: boolean) => {
+    setActivatingId(id);
+    const res = await fetch(`/api/admin/providers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !current }),
+    });
+    if (res.ok) {
+      setProviders(prev => prev.map(p => p.id === id ? { ...p, active: !current } : p));
+    }
+    setActivatingId(null);
+  };
+
   const filtered = providers.filter(p =>
     p.fullName.toLowerCase().includes(search.toLowerCase()) ||
     p.email.toLowerCase().includes(search.toLowerCase())
   );
 
   const featuredCount = providers.filter(p => p.featured).length;
+  const pendingCount = providers.filter(p => !p.active).length;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -70,7 +85,7 @@ export default function AdminDashboard() {
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <span className="text-xl font-bold">
-            <span className="text-brand">adresar</span>.cz
+            <span className="text-brand">adressa</span>.cz
           </span>
           <span className="text-gray-600">|</span>
           <span className="text-gray-400 text-sm font-medium">Admin Panel</span>
@@ -98,7 +113,7 @@ export default function AdminDashboard() {
           {[
             { label: 'Celkem profilů', value: providers.length, icon: '👥' },
             { label: 'Zvýrazněných', value: featuredCount, icon: '⭐' },
-            { label: 'Měst', value: new Set(providers.map(p => p.cityId)).size, icon: '📍' },
+            { label: 'Čeká na aktivaci', value: pendingCount, icon: '⏳' },
           ].map(stat => (
             <div key={stat.label} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
               <div className="text-2xl mb-1">{stat.icon}</div>
@@ -134,6 +149,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-6 py-3">Služba</th>
                     <th className="text-left px-6 py-3">Město</th>
                     <th className="text-left px-6 py-3">Kontakt</th>
+                    <th className="text-center px-6 py-3">Stav</th>
                     <th className="text-center px-6 py-3">Zvýraznit</th>
                     <th className="text-right px-6 py-3">Akce</th>
                   </tr>
@@ -143,7 +159,7 @@ export default function AdminDashboard() {
                     const service = SERVICES.find(s => s.id === provider.serviceId);
                     const city = CITIES.find(c => c.id === provider.cityId);
                     return (
-                      <tr key={provider.id} className={`hover:bg-gray-800/50 transition-colors ${provider.featured ? 'bg-yellow-500/5' : ''}`}>
+                      <tr key={provider.id} className={`hover:bg-gray-800/50 transition-colors ${!provider.active ? 'opacity-60' : provider.featured ? 'bg-yellow-500/5' : ''}`}>
                         {/* Profile */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -175,6 +191,21 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4">
                           <div className="text-gray-300 text-xs">{provider.email}</div>
                           <div className="text-gray-500 text-xs">{provider.phone}</div>
+                        </td>
+                        {/* Active status */}
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleToggleActive(provider.id, provider.active)}
+                            disabled={activatingId === provider.id}
+                            title={provider.active ? 'Deaktivovat' : 'Aktivovat profil'}
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                              provider.active
+                                ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400'
+                                : 'bg-orange-500/20 text-orange-400 hover:bg-green-500/20 hover:text-green-400'
+                            } ${activatingId === provider.id ? 'opacity-50' : ''}`}
+                          >
+                            {provider.active ? '✓ Aktivní' : '⏳ Čeká'}
+                          </button>
                         </td>
                         {/* Featured toggle */}
                         <td className="px-6 py-4 text-center">

@@ -8,6 +8,8 @@ export interface Provider {
   description: string | null;
   picturePath: string | null;
   featured: boolean;
+  active: boolean;
+  paidUntil: string | null;
   createdAt: string;
   updatedAt: string;
 }

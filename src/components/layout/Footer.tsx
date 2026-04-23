@@ -16,7 +16,7 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Link href="/" className="inline-block mb-3">
               <span className="text-xl font-bold">
-                <span className="text-brand">adresar</span>
+                <span className="text-brand">adressa</span>
                 <span className="text-white">.cz</span>
               </span>
             </Link>
@@ -59,15 +59,31 @@ export function Footer() {
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
               {t.footer.contact}
             </h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li>info@adresar.cz</li>
-              <li>+420 800 000 000</li>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li>
+                <p className="text-gray-500 text-xs mb-1">
+                  {language === 'cs' ? 'Zákaznická podpora' : 'Customer support'}
+                </p>
+                <a href="mailto:customerserviceentfin@gmail.com" className="hover:text-brand transition-colors break-all">
+                  customerserviceentfin@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="tel:+420728415630" className="hover:text-brand transition-colors">
+                  +420 728 415 630
+                </a>
+              </li>
+              <li className="pt-1 text-xs text-gray-500 leading-relaxed">
+                {language === 'cs'
+                  ? 'Chcete zvýšit viditelnost vašeho profilu? Kontaktujte nás.'
+                  : 'Want to boost your listing visibility? Contact us.'}
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-600 mt-10 pt-6 text-center text-xs text-gray-500">
-          © {year} adresar.cz — {t.footer.rights}
+          © {year} adressa.cz — {t.footer.rights}
         </div>
       </div>
     </footer>

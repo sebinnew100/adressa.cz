@@ -41,10 +41,26 @@ export function ProviderForm() {
       }
       if (!res.ok) throw new Error();
 
-      setSuccess(true);
+      const provider = await res.json();
+
+      // Redirect to Stripe checkout
+      const checkoutRes = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ providerId: provider.id }),
+      });
+
+      if (checkoutRes.status === 503) {
+        // Stripe not configured yet — profile saved, pending manual activation
+        setSuccess(true);
+        setSubmitting(false);
+        return;
+      }
+      if (!checkoutRes.ok) throw new Error();
+      const { url } = await checkoutRes.json();
+      window.location.href = url;
     } catch {
       setError(t.register.error);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -58,7 +74,28 @@ export function ProviderForm() {
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-ink mb-2">{t.register.success}</h2>
-        <p className="text-ink-light mb-8">{t.register.successSub}</p>
+        <p className="text-ink-light mb-6">{t.register.successSub}</p>
+
+        {/* Boost visibility — only shown to the person who just registered */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
+          <p className="text-sm font-semibold text-amber-800 mb-1">
+            {language === 'cs' ? '⭐ Zvyšte viditelnost svého profilu' : '⭐ Increase your profile visibility'}
+          </p>
+          <p className="text-xs text-amber-700 mb-3">
+            {language === 'cs'
+              ? 'Chcete být vidět jako první? Kontaktujte nás pro zvýraznění vašeho profilu.'
+              : 'Want to be seen first? Contact us to highlight your profile.'}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <a href="mailto:customerserviceentfin@gmail.com" className="text-xs text-amber-900 font-medium hover:underline">
+              ✉️ customerserviceentfin@gmail.com
+            </a>
+            <a href="tel:+420728415630" className="text-xs text-amber-900 font-medium hover:underline">
+              📞 +420 728 415 630
+            </a>
+          </div>
+        </div>
+
         <Link
           href="/providers"
           className="inline-flex items-center bg-brand hover:bg-brand-hover text-white font-semibold px-8 py-3 rounded-lg transition-colors"

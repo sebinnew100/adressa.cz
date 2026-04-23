@@ -10,10 +10,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'adresar.cz — Místní poskytovatelé služeb',
+  title: 'adressa.cz — Místní poskytovatelé služeb',
   description:
     'Najděte místní řemeslníky a profesionály v České republice. Elektrikáři, instalatéři, malíři, zubaři a mnoho dalších.',
   keywords: 'řemeslníci, elektrikář, instalatér, malíř, zubař, Praha, Brno, Ostrava, Česká republika',
+  other: {
+    monetag: '8ebc365aff2bd853853de756c188a822',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

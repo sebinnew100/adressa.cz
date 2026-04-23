@@ -28,7 +28,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex-shrink-0">
           <span className="text-2xl font-bold tracking-tight">
-            <span className="text-brand">adresar</span>
+            <span className="text-brand">adressa</span>
             <span className="text-ink">.cz</span>
           </span>
         </Link>

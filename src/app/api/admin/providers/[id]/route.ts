@@ -58,10 +58,21 @@ export async function PATCH(
   }
 
   try {
-    const { featured } = await request.json();
+    const body = await request.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {};
+    if ('featured' in body) data.featured = Boolean(body.featured);
+    if ('active' in body) {
+      data.active = Boolean(body.active);
+      if (data.active) {
+        const paidUntil = new Date();
+        paidUntil.setDate(paidUntil.getDate() + 30);
+        data.paidUntil = paidUntil;
+      }
+    }
     const updated = await prisma.provider.update({
       where: { id: params.id },
-      data: { featured: Boolean(featured) },
+      data,
     });
     return NextResponse.json(updated);
   } catch {

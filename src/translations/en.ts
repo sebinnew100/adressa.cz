@@ -77,7 +77,7 @@ export const en: Translations = {
     submit: 'Publish Profile',
     submitting: 'Saving...',
     success: 'Your profile has been published!',
-    successSub: 'Customers can now find you on adresar.cz',
+    successSub: 'Customers can now find you on adressa.cz',
     successBrowse: 'Browse all profiles',
     error: 'Something went wrong. Please try again.',
     errorEmail: 'This email is already registered.',
