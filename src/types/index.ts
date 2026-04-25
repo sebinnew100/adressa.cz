@@ -2,7 +2,7 @@ export interface Provider {
   id: string;
   fullName: string;
   email: string | null;
-  phone: string;
+  phone: string | null;
   serviceId: string;
   cityId: string;
   address: string | null;

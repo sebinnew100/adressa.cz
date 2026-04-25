@@ -125,7 +125,7 @@ export default function EditProviderPage() {
             </div>
             <div>
               <label className={labelClass}>Telefon *</label>
-              <input type="tel" name="phone" required defaultValue={provider.phone} className={inputClass} />
+              <input type="tel" name="phone" required defaultValue={provider.phone ?? ''} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Služba *</label>
