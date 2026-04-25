@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       metadata: { providerId },
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancel?providerId=${providerId}`,
-      customer_email: provider.email,
+      customer_email: provider.email ?? undefined,
     });
 
     return NextResponse.json({ url: session.url });
