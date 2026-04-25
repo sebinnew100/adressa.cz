@@ -8,6 +8,17 @@ import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import type { Provider } from '@/types';
 
+interface Appointment {
+  id: string;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  message: string | null;
+  createdAt: string;
+  provider: { fullName: string; serviceId: string };
+}
+
 function Initials({ name }: { name: string }) {
   const p = name.trim().split(' ');
   const i = p.length >= 2 ? p[0][0] + p[p.length - 1][0] : p[0].slice(0, 2);
@@ -22,6 +33,9 @@ export default function AdminDashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [apptLoading, setApptLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'providers' | 'appointments'>('providers');
 
   const fetchProviders = async () => {
     const res = await fetch('/api/admin/providers');
@@ -30,7 +44,13 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProviders(); }, []);
+  useEffect(() => {
+    fetchProviders();
+    fetch('/api/admin/appointments')
+      .then(r => r.json())
+      .then(data => Array.isArray(data) && setAppointments(data))
+      .finally(() => setApptLoading(false));
+  }, []);
 
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
@@ -108,6 +128,16 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8">
+          {(['providers', 'appointments'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === tab ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+              {tab === 'providers' ? `👥 Profily (${providers.length})` : `📅 Poptávky (${appointments.length})`}
+            </button>
+          ))}
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {[
@@ -123,7 +153,52 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Search + Table */}
+        {activeTab === 'appointments' && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-800">
+              <h2 className="font-bold text-lg">Poptávky schůzek</h2>
+            </div>
+            {apptLoading ? (
+              <div className="text-center py-16 text-gray-500">Načítám...</div>
+            ) : appointments.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">Žádné poptávky zatím</div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+                {appointments.map(a => {
+                  const service = SERVICES.find(s => s.id === a.provider.serviceId);
+                  return (
+                    <div key={a.id} className="px-6 py-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-white">{a.customerName}</span>
+                            <span className="text-xs text-gray-500">→</span>
+                            <span className="text-sm text-brand font-medium">{a.provider.fullName}</span>
+                            {service && <span className="text-xs text-gray-500">{service.icon} {service.nameCz}</span>}
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs text-gray-400 mb-2">
+                            {a.customerEmail && <span>✉️ {a.customerEmail}</span>}
+                            {a.customerPhone && <span>📞 {a.customerPhone}</span>}
+                            {a.customerAddress && <span>📍 {a.customerAddress}</span>}
+                          </div>
+                          {a.message && (
+                            <p className="text-sm text-gray-300 bg-gray-800 rounded-lg px-4 py-2.5 mt-2 max-w-xl">{a.message}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {new Date(a.createdAt).toLocaleString('cs-CZ')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'providers' && (
+        <>{/* Search + Table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
             <h2 className="font-bold text-lg">Všechny profily</h2>
@@ -248,6 +323,7 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+        </>)}
       </main>
     </div>
   );

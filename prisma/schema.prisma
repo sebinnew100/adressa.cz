@@ -22,7 +22,20 @@ model Provider {
   paidUntil   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  reviews     Review[]
+  reviews      Review[]
+  appointments AppointmentRequest[]
+}
+
+model AppointmentRequest {
+  id              String   @id @default(cuid())
+  providerId      String
+  provider        Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  message         String?
+  createdAt       DateTime @default(now())
 }
 
 model Review {
