@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 
+const PAGE_SIZE = 20;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const cityId = searchParams.get('city') || undefined;
   const serviceId = searchParams.get('service') || undefined;
   const sort = searchParams.get('sort') || 'name';
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
 
   const where = {
     active: true,
@@ -20,8 +23,11 @@ export async function GET(request: NextRequest) {
     : { fullName: 'asc' as const };
 
   try {
-    const providers = await prisma.provider.findMany({ where, orderBy });
-    return NextResponse.json(providers);
+    const [providers, total] = await Promise.all([
+      prisma.provider.findMany({ where, orderBy, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+      prisma.provider.count({ where }),
+    ]);
+    return NextResponse.json({ providers, total, page, totalPages: Math.ceil(total / PAGE_SIZE) });
   } catch {
     return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
