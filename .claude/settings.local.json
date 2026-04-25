@@ -17,7 +17,8 @@
       "Bash(node seed-dentists.mjs)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node seed-dentists.mjs)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" npx prisma db push)",
-      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node patch-photos.mjs)"
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node patch-photos.mjs)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node patch-addresses.mjs)"
     ]
   }
 }
