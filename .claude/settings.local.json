@@ -4,7 +4,20 @@
       "Bash(npx neonctl *)",
       "Bash(git push *)",
       "Bash(node seed-fake.mjs)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "WebSearch",
+      "WebFetch(domain:zubarceskebudejovice.cz)",
+      "WebFetch(domain:rc-dent.cz)",
+      "WebFetch(domain:www.dentismile.cz)",
+      "WebFetch(domain:www.2d-dent.cz)",
+      "WebFetch(domain:www.poliklinikasever.cz)",
+      "WebFetch(domain:www.stomatologie-matas.cz)",
+      "WebFetch(domain:www.dentalcarecb.cz)",
+      "WebFetch(domain:mudr-martin-ehrenberger.katalog-stomatologu.cz)",
+      "Bash(node seed-dentists.mjs)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node seed-dentists.mjs)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" npx prisma db push)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_g5YihPLRkyW3@ep-plain-band-aja6n28n.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=disable\" node patch-photos.mjs)"
     ]
   }
 }
