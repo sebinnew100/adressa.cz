@@ -194,6 +194,20 @@ export function ProviderForm() {
           </select>
         </div>
         <div className="sm:col-span-2">
+          <label className={labelClass}>
+            {language === 'cs' ? 'Adresa ordinace / provozovny' : 'Business Address'}
+            <span className="text-gray-400 font-normal text-xs ml-1">
+              {language === 'cs' ? '(nepovinné)' : '(optional)'}
+            </span>
+          </label>
+          <input
+            type="text"
+            name="address"
+            placeholder={language === 'cs' ? 'Václavské nám. 1, Praha 1' : '123 Main St, Prague 1'}
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
           <label className={labelClass}>{t.register.city} *</label>
           <select name="cityId" required className={inputClass}>
             <option value="">—</option>
