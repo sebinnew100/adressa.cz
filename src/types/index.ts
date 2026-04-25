@@ -1,7 +1,7 @@
 export interface Provider {
   id: string;
   fullName: string;
-  email: string;
+  email: string | null;
   phone: string;
   serviceId: string;
   cityId: string;
