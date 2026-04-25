@@ -385,19 +385,17 @@ export default function ProviderDetailPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-ink-light mb-1.5">
-                        {language === 'cs' ? 'Váš e-mail' : 'Your email'}
-                        <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                        {language === 'cs' ? 'Váš e-mail *' : 'Your email *'}
                       </label>
-                      <input type="email" value={apptEmail} onChange={e => setApptEmail(e.target.value)}
+                      <input type="email" required value={apptEmail} onChange={e => setApptEmail(e.target.value)}
                         placeholder="jan@email.cz"
                         className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-ink-light mb-1.5">
-                        {language === 'cs' ? 'Telefon' : 'Phone'}
-                        <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                        {language === 'cs' ? 'Telefon *' : 'Phone *'}
                       </label>
-                      <input type="tel" value={apptPhone} onChange={e => setApptPhone(e.target.value)}
+                      <input type="tel" required value={apptPhone} onChange={e => setApptPhone(e.target.value)}
                         placeholder="+420 777 123 456"
                         className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
                     </div>

@@ -12,8 +12,8 @@ export async function POST(
   const { customerName, customerEmail, customerPhone, customerAddress, message } =
     await request.json();
 
-  if (!customerName?.trim()) {
-    return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+  if (!customerName?.trim() || !customerEmail?.trim() || !customerPhone?.trim()) {
+    return NextResponse.json({ error: 'Name, email and phone are required' }, { status: 400 });
   }
 
   const appt = await prisma.appointmentRequest.create({

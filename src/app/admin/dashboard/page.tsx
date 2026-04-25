@@ -93,7 +93,7 @@ export default function AdminDashboard() {
 
   const filtered = providers.filter(p =>
     p.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    p.email.toLowerCase().includes(search.toLowerCase())
+    (p.email ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
   const featuredCount = providers.filter(p => p.featured).length;
