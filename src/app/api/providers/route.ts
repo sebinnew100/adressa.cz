@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     const fullName = (formData.get('fullName') as string | null)?.trim() ?? '';
-    const email = (formData.get('email') as string | null)?.trim() ?? '';
+    const email = (formData.get('email') as string | null)?.trim() || null;
     const phone = (formData.get('phone') as string | null)?.trim() || null;
     const serviceId = (formData.get('serviceId') as string | null) ?? '';
     const cityId = (formData.get('cityId') as string | null) ?? '';
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const description = (formData.get('description') as string | null)?.trim() || null;
     const pictureFile = formData.get('picture') as File | null;
 
-    if (!fullName || !email || !serviceId || !cityId) {
+    if (!fullName || !serviceId || !cityId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 

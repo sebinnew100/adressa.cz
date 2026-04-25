@@ -159,11 +159,15 @@ export function ProviderForm() {
           />
         </div>
         <div>
-          <label className={labelClass}>{t.register.email} *</label>
+          <label className={labelClass}>
+            {t.register.email}
+            <span className="text-gray-400 font-normal text-xs ml-1">
+              {language === 'cs' ? '(nepovinné)' : '(optional)'}
+            </span>
+          </label>
           <input
             type="email"
             name="email"
-            required
             placeholder={t.register.placeholders.email}
             className={inputClass}
           />
