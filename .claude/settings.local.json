@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx neonctl *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node seed-fake.mjs)",
+      "Bash(node -e ' *)"
     ]
   }
 }
