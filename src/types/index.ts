@@ -5,6 +5,7 @@ export interface Provider {
   phone: string;
   serviceId: string;
   cityId: string;
+  address: string | null;
   description: string | null;
   picturePath: string | null;
   featured: boolean;

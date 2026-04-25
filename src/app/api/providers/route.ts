@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const phone = (formData.get('phone') as string | null)?.trim() || null;
     const serviceId = (formData.get('serviceId') as string | null) ?? '';
     const cityId = (formData.get('cityId') as string | null) ?? '';
+    const address = (formData.get('address') as string | null)?.trim() || null;
     const description = (formData.get('description') as string | null)?.trim() || null;
     const pictureFile = formData.get('picture') as File | null;
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const provider = await prisma.provider.create({
-      data: { fullName, email, phone, serviceId, cityId, description, picturePath, active: true },
+      data: { fullName, email, phone, serviceId, cityId, address, description, picturePath, active: true },
     });
 
     return NextResponse.json(provider, { status: 201 });

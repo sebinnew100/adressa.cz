@@ -15,6 +15,7 @@ model Provider {
   phone       String?
   serviceId   String
   cityId      String
+  address     String?
   description String?
   picturePath String?
   featured    Boolean   @default(false)

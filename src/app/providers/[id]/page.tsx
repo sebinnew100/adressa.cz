@@ -316,6 +316,17 @@ export default function ProviderDetailPage() {
                           </div>
                           <a href={`tel:${provider.phone}`} className="text-brand hover:underline">{provider.phone}</a>
                         </div>
+                        {provider.address && (
+                          <div className="flex items-center gap-3 text-sm">
+                            <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <svg className="w-4 h-4 text-ink-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-ink">{provider.address}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <a href={`mailto:${provider.email}`} className="flex-1 bg-brand hover:bg-brand-hover text-white font-semibold text-center py-3 rounded-lg transition-colors">
