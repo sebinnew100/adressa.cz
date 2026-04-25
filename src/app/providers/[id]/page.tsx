@@ -131,6 +131,15 @@ export default function ProviderDetailPage() {
   const [reviewError, setReviewError] = useState('');
   const reviewFormRef = useRef<HTMLFormElement>(null);
 
+  const [apptName, setApptName] = useState('');
+  const [apptEmail, setApptEmail] = useState('');
+  const [apptPhone, setApptPhone] = useState('');
+  const [apptAddress, setApptAddress] = useState('');
+  const [apptMessage, setApptMessage] = useState('');
+  const [apptSubmitting, setApptSubmitting] = useState(false);
+  const [apptSuccess, setApptSuccess] = useState(false);
+  const [apptError, setApptError] = useState('');
+
   useEffect(() => {
     if (!id) return;
     fetch(`/api/providers/${id}`)
@@ -150,6 +159,30 @@ export default function ProviderDetailPage() {
   const handleUnlocked = () => {
     setUnlocked(true);
     setShowAd(false);
+  };
+
+  const handleApptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApptSubmitting(true);
+    setApptError('');
+    const res = await fetch(`/api/providers/${id}/appointments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: apptName,
+        customerEmail: apptEmail,
+        customerPhone: apptPhone,
+        customerAddress: apptAddress,
+        message: apptMessage,
+      }),
+    });
+    if (res.ok) {
+      setApptSuccess(true);
+      setApptName(''); setApptEmail(''); setApptPhone(''); setApptAddress(''); setApptMessage('');
+    } else {
+      setApptError(language === 'cs' ? 'Chyba při odesílání. Zkuste to znovu.' : 'Error sending. Please try again.');
+    }
+    setApptSubmitting(false);
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -317,6 +350,84 @@ export default function ProviderDetailPage() {
                 </div>
 
               </div>
+            </div>
+
+            {/* Appointment request section */}
+            <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-card p-6 sm:p-8">
+              <h2 className="text-lg font-bold text-ink mb-1">
+                {language === 'cs' ? '📅 Poptávka schůzky' : '📅 Request Appointment'}
+              </h2>
+              <p className="text-sm text-ink-light mb-6">
+                {language === 'cs'
+                  ? 'Vyplňte své kontaktní údaje a odešlete zprávu přímo profesionálovi.'
+                  : 'Fill in your details and send a message directly to the professional.'}
+              </p>
+
+              {apptSuccess ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-5 py-4 text-sm font-medium">
+                  {language === 'cs'
+                    ? '✅ Vaše poptávka byla odeslána! Profesionál se vám brzy ozve.'
+                    : '✅ Your request was sent! The professional will get back to you soon.'}
+                </div>
+              ) : (
+                <form onSubmit={handleApptSubmit} className="space-y-4">
+                  {apptError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-3 text-sm">{apptError}</div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-ink-light mb-1.5">
+                        {language === 'cs' ? 'Vaše jméno *' : 'Your name *'}
+                      </label>
+                      <input type="text" required value={apptName} onChange={e => setApptName(e.target.value)}
+                        placeholder={language === 'cs' ? 'Jan Novák' : 'John Doe'}
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink-light mb-1.5">
+                        {language === 'cs' ? 'Váš e-mail' : 'Your email'}
+                        <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                      </label>
+                      <input type="email" value={apptEmail} onChange={e => setApptEmail(e.target.value)}
+                        placeholder="jan@email.cz"
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink-light mb-1.5">
+                        {language === 'cs' ? 'Telefon' : 'Phone'}
+                        <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                      </label>
+                      <input type="tel" value={apptPhone} onChange={e => setApptPhone(e.target.value)}
+                        placeholder="+420 777 123 456"
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-ink-light mb-1.5">
+                        {language === 'cs' ? 'Adresa' : 'Address'}
+                        <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                      </label>
+                      <input type="text" value={apptAddress} onChange={e => setApptAddress(e.target.value)}
+                        placeholder={language === 'cs' ? 'Václavské nám. 1, Praha' : '123 Main St, Prague'}
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder-gray-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ink-light mb-1.5">
+                      {language === 'cs' ? 'Zpráva' : 'Message'}
+                      <span className="text-gray-400 ml-1">{language === 'cs' ? '(nepovinné)' : '(optional)'}</span>
+                    </label>
+                    <textarea rows={3} value={apptMessage} onChange={e => setApptMessage(e.target.value)}
+                      placeholder={language === 'cs' ? 'Popište, co potřebujete…' : 'Describe what you need…'}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none text-ink placeholder-gray-400" />
+                  </div>
+                  <button type="submit" disabled={apptSubmitting}
+                    className="bg-brand hover:bg-brand-hover disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-lg transition-colors text-sm">
+                    {apptSubmitting
+                      ? (language === 'cs' ? 'Odesílám…' : 'Sending…')
+                      : (language === 'cs' ? '📤 Odeslat poptávku' : '📤 Send Request')}
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Reviews section */}
