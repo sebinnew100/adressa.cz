@@ -10,13 +10,6 @@ import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import type { Provider } from '@/types';
 
-interface Review {
-  id: string;
-  authorName: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-}
 
 function Initials({ name }: { name: string }) {
   const p = name.trim().split(' ');
@@ -107,7 +100,15 @@ function AdUnlockModal({ onUnlocked, language }: { onUnlocked: () => void; langu
   );
 }
 
-export function ProviderDetailClient({ provider }: { provider: Provider }) {
+interface ReviewData {
+  id: string;
+  authorName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export function ProviderDetailClient({ provider, initialReviews = [] }: { provider: Provider; initialReviews?: ReviewData[] }) {
   const { language, t } = useLanguage();
   const router = useRouter();
   const id = provider.id;
@@ -115,8 +116,8 @@ export function ProviderDetailClient({ provider }: { provider: Provider }) {
   const [unlocked, setUnlocked] = useState(false);
   const [showAd, setShowAd] = useState(false);
 
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviews, setReviews] = useState<ReviewData[]>(initialReviews);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewName, setReviewName] = useState('');
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
@@ -134,12 +135,6 @@ export function ProviderDetailClient({ provider }: { provider: Provider }) {
   const [apptSuccess, setApptSuccess] = useState(false);
   const [apptError, setApptError] = useState('');
 
-  useEffect(() => {
-    fetch(`/api/providers/${id}/reviews`)
-      .then(r => r.json())
-      .then(data => Array.isArray(data) && setReviews(data))
-      .finally(() => setReviewsLoading(false));
-  }, [id]);
 
   const handleApptSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
