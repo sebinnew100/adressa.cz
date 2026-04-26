@@ -3,6 +3,7 @@ export const cs = {
     home: 'Domů',
     browse: 'Procházet',
     register: 'Přidat profil',
+    faq: 'FAQ',
   },
   hero: {
     title: 'Najděte místního odborníka',
@@ -96,6 +97,7 @@ export const cs = {
       home: 'Domů',
       browse: 'Procházet odborníky',
       register: 'Přidat profil',
+      faq: 'Časté dotazy',
     },
   },
   cities: {
