@@ -5,6 +5,7 @@ export const en: Translations = {
     home: 'Home',
     browse: 'Browse',
     register: 'List Your Service',
+    faq: 'FAQ',
   },
   hero: {
     title: 'Find a local expert',
@@ -98,6 +99,7 @@ export const en: Translations = {
       home: 'Home',
       browse: 'Browse Providers',
       register: 'List Your Service',
+      faq: 'FAQ',
     },
   },
   cities: {

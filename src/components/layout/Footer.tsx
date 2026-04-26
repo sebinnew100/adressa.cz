@@ -32,6 +32,7 @@ export function Footer() {
               <li><Link href="/" className="hover:text-brand transition-colors">{t.footer.links.home}</Link></li>
               <li><Link href="/providers" className="hover:text-brand transition-colors">{t.footer.links.browse}</Link></li>
               <li><Link href="/register" className="hover:text-brand transition-colors">{t.footer.links.register}</Link></li>
+              <li><Link href="/faq" className="hover:text-brand transition-colors">{t.footer.links.faq}</Link></li>
             </ul>
           </div>
 
