@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 const PAGE_SIZE = 20;
 
 export async function GET(request: NextRequest) {

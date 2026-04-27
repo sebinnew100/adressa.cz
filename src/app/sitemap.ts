@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 
+export const dynamic = 'force-dynamic';
+
 const BASE = 'https://www.adressa.cz';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
