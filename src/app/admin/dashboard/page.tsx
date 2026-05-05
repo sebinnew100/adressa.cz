@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [apptLoading, setApptLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'providers' | 'appointments' | 'codes'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'appointments' | 'codes' | 'requests'>('providers');
 
   interface AccessCode { id: string; code: string; label: string | null; active: boolean; createdAt: string; }
   const [codes, setCodes] = useState<AccessCode[]>([]);
@@ -43,6 +43,17 @@ export default function AdminDashboard() {
   const [newLabel, setNewLabel] = useState('');
   const [generatingCode, setGeneratingCode] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  interface ServiceReq {
+    id: string; title: string; description: string | null;
+    serviceId: string | null; cityId: string | null;
+    contactName: string; contactEmail: string | null; contactPhone: string | null;
+    budget: string | null; active: boolean; createdAt: string;
+  }
+  const [serviceReqs, setServiceReqs] = useState<ServiceReq[]>([]);
+  const [reqsLoading, setReqsLoading] = useState(false);
+  const [editingReq, setEditingReq] = useState<ServiceReq | null>(null);
+  const [savingReq, setSavingReq] = useState(false);
 
   const fetchProviders = async () => {
     const res = await fetch('/api/admin/providers');
@@ -97,6 +108,36 @@ export default function AdminDashboard() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const fetchServiceReqs = async () => {
+    setReqsLoading(true);
+    const res = await fetch('/api/admin/requests');
+    const data = await res.json();
+    if (Array.isArray(data)) setServiceReqs(data);
+    setReqsLoading(false);
+  };
+
+  const deleteServiceReq = async (id: string) => {
+    if (!confirm('Smazat tuto poptávku?')) return;
+    await fetch(`/api/admin/requests/${id}`, { method: 'DELETE' });
+    setServiceReqs(prev => prev.filter(r => r.id !== id));
+  };
+
+  const saveServiceReq = async () => {
+    if (!editingReq) return;
+    setSavingReq(true);
+    const res = await fetch(`/api/admin/requests/${editingReq.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editingReq),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setServiceReqs(prev => prev.map(r => r.id === updated.id ? updated : r));
+      setEditingReq(null);
+    }
+    setSavingReq(false);
+  };
+
   useEffect(() => {
     fetchProviders();
     fetch('/api/admin/appointments')
@@ -104,6 +145,7 @@ export default function AdminDashboard() {
       .then(data => Array.isArray(data) && setAppointments(data))
       .finally(() => setApptLoading(false));
     fetchCodes();
+    fetchServiceReqs();
   }, []);
 
   const handleLogout = async () => {
@@ -195,6 +237,10 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab('codes')}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'codes' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
             🔑 Přístupové kódy ({codes.length})
+          </button>
+          <button onClick={() => setActiveTab('requests')}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'requests' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+            📋 Zákaznické poptávky ({serviceReqs.length})
           </button>
         </div>
 
@@ -316,6 +362,158 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'requests' && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-800">
+              <h2 className="font-bold text-lg">📋 Zákaznické poptávky</h2>
+            </div>
+            {reqsLoading ? (
+              <div className="text-center py-16 text-gray-500">Načítám...</div>
+            ) : serviceReqs.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">Žádné poptávky zatím</div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+                {serviceReqs.map(r => {
+                  const service = SERVICES.find(s => s.id === r.serviceId);
+                  const city = CITIES.find(c => c.id === r.cityId);
+                  const isEditing = editingReq?.id === r.id;
+                  const row = isEditing ? editingReq! : r;
+                  return (
+                    <div key={r.id} className={`px-6 py-5 ${!r.active ? 'opacity-50' : ''}`}>
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <input
+                            className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                            placeholder="Nadpis"
+                            value={row.title}
+                            onChange={e => setEditingReq({ ...row, title: e.target.value })}
+                          />
+                          <textarea
+                            className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                            placeholder="Popis"
+                            rows={3}
+                            value={row.description ?? ''}
+                            onChange={e => setEditingReq({ ...row, description: e.target.value })}
+                          />
+                          <div className="grid grid-cols-2 gap-3">
+                            <select
+                              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                              value={row.serviceId ?? ''}
+                              onChange={e => setEditingReq({ ...row, serviceId: e.target.value || null })}
+                            >
+                              <option value="">— Kategorie —</option>
+                              {SERVICES.map(s => <option key={s.id} value={s.id}>{s.nameCz}</option>)}
+                            </select>
+                            <select
+                              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                              value={row.cityId ?? ''}
+                              onChange={e => setEditingReq({ ...row, cityId: e.target.value || null })}
+                            >
+                              <option value="">— Město —</option>
+                              {CITIES.map(c => <option key={c.id} value={c.id}>{c.nameCz}</option>)}
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <input
+                              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                              placeholder="Jméno"
+                              value={row.contactName}
+                              onChange={e => setEditingReq({ ...row, contactName: e.target.value })}
+                            />
+                            <input
+                              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                              placeholder="E-mail"
+                              value={row.contactEmail ?? ''}
+                              onChange={e => setEditingReq({ ...row, contactEmail: e.target.value })}
+                            />
+                            <input
+                              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                              placeholder="Telefon"
+                              value={row.contactPhone ?? ''}
+                              onChange={e => setEditingReq({ ...row, contactPhone: e.target.value })}
+                            />
+                          </div>
+                          <input
+                            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-full"
+                            placeholder="Rozpočet"
+                            value={row.budget ?? ''}
+                            onChange={e => setEditingReq({ ...row, budget: e.target.value })}
+                          />
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={saveServiceReq}
+                              disabled={savingReq}
+                              className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {savingReq ? 'Ukládám…' : '✓ Uložit'}
+                            </button>
+                            <button
+                              onClick={() => setEditingReq(null)}
+                              className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+                            >
+                              Zrušit
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-white">{r.title}</span>
+                              {service && <span className="text-xs text-brand">{service.icon} {service.nameCz}</span>}
+                              {city && <span className="text-xs text-gray-400">📍 {city.nameCz}</span>}
+                              {r.budget && <span className="text-xs text-green-400">💰 {r.budget}</span>}
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${r.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                {r.active ? 'Aktivní' : 'Skrytá'}
+                              </span>
+                            </div>
+                            {r.description && (
+                              <p className="text-sm text-gray-400 line-clamp-2 mb-2">{r.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                              <span className="font-medium text-gray-300">{r.contactName}</span>
+                              {r.contactEmail && <span>✉️ {r.contactEmail}</span>}
+                              {r.contactPhone && <span>📞 {r.contactPhone}</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleDateString('cs-CZ')}</span>
+                            <button
+                              onClick={() => {
+                                const res = fetch(`/api/admin/requests/${r.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ ...r, active: !r.active }),
+                                });
+                                res.then(res => res.ok && setServiceReqs(prev => prev.map(x => x.id === r.id ? { ...x, active: !x.active } : x)));
+                              }}
+                              className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${r.active ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400' : 'bg-gray-700 text-gray-500 hover:bg-green-500/20 hover:text-green-400'}`}
+                            >
+                              {r.active ? '✓ Aktivní' : '✗ Skrytá'}
+                            </button>
+                            <button
+                              onClick={() => setEditingReq(r)}
+                              className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              ✏️ Upravit
+                            </button>
+                            <button
+                              onClick={() => deleteServiceReq(r.id)}
+                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              🗑 Smazat
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
