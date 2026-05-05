@@ -32,6 +32,30 @@ export default function HomePage() {
         <CategoryGrid />
         <HowItWorks />
 
+        {/* Customer request CTA */}
+        <section className="py-14 bg-gradient-to-r from-brand to-brand-hover">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                {language === 'cs'
+                  ? 'Nenašli jste, co hledáte?'
+                  : "Can't find what you need?"}
+              </h2>
+              <p className="text-white/80 mt-1 text-sm">
+                {language === 'cs'
+                  ? 'Přidejte poptávku a nechte profesionály, aby vás sami kontaktovali.'
+                  : 'Post a request and let qualified professionals come to you.'}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/poptavky/nova')}
+              className="flex-shrink-0 bg-white text-brand hover:bg-gray-100 font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md"
+            >
+              {language === 'cs' ? '+ Přidat poptávku' : '+ Post a Request'}
+            </button>
+          </div>
+        </section>
+
         {/* Featured providers */}
         {featured.length > 0 && (
           <section className="py-16 bg-white">
