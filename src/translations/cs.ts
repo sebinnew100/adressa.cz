@@ -2,6 +2,7 @@ export const cs = {
   nav: {
     home: 'Domů',
     browse: 'Procházet',
+    requests: 'Poptávky',
     register: 'Přidat profil',
     faq: 'FAQ',
   },
@@ -96,6 +97,7 @@ export const cs = {
     links: {
       home: 'Domů',
       browse: 'Procházet odborníky',
+      requests: 'Poptávky',
       register: 'Přidat profil',
       faq: 'Časté dotazy',
     },

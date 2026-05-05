@@ -4,6 +4,7 @@ export const en: Translations = {
   nav: {
     home: 'Home',
     browse: 'Browse',
+    requests: 'Requests',
     register: 'List Your Service',
     faq: 'FAQ',
   },
@@ -98,6 +99,7 @@ export const en: Translations = {
     links: {
       home: 'Home',
       browse: 'Browse Providers',
+      requests: 'Requests',
       register: 'List Your Service',
       faq: 'FAQ',
     },

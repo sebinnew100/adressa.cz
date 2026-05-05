@@ -37,6 +37,7 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-6">
           {navLink('/', t.nav.home)}
           {navLink('/providers', t.nav.browse)}
+          {navLink('/poptavky', t.nav.requests)}
           {navLink('/faq', t.nav.faq)}
         </nav>
 
