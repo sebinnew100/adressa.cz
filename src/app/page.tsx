@@ -33,7 +33,7 @@ export default function HomePage() {
         <HowItWorks />
 
         {/* Customer request CTA */}
-        <section className="py-14 bg-gradient-to-r from-brand to-brand-hover">
+        <section className="py-14" style={{ backgroundColor: '#1DBF73' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
             <div>
               <h2 className="text-2xl font-bold text-white">
@@ -41,7 +41,7 @@ export default function HomePage() {
                   ? 'Nenašli jste, co hledáte?'
                   : "Can't find what you need?"}
               </h2>
-              <p className="text-white/80 mt-1 text-sm">
+              <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
                 {language === 'cs'
                   ? 'Přidejte poptávku a nechte profesionály, aby vás sami kontaktovali.'
                   : 'Post a request and let qualified professionals come to you.'}
@@ -49,7 +49,8 @@ export default function HomePage() {
             </div>
             <button
               onClick={() => router.push('/poptavky/nova')}
-              className="flex-shrink-0 bg-white text-brand hover:bg-gray-100 font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md"
+              className="flex-shrink-0 bg-white font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md hover:bg-gray-100"
+              style={{ color: '#1DBF73' }}
             >
               {language === 'cs' ? '+ Přidat poptávku' : '+ Post a Request'}
             </button>
