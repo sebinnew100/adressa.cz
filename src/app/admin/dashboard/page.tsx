@@ -35,7 +35,14 @@ export default function AdminDashboard() {
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [apptLoading, setApptLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'providers' | 'appointments'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'appointments' | 'codes'>('providers');
+
+  interface AccessCode { id: string; code: string; label: string | null; active: boolean; createdAt: string; }
+  const [codes, setCodes] = useState<AccessCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchProviders = async () => {
     const res = await fetch('/api/admin/providers');
@@ -44,12 +51,55 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const fetchCodes = async () => {
+    setCodesLoading(true);
+    const res = await fetch('/api/admin/codes');
+    const data = await res.json();
+    if (Array.isArray(data)) setCodes(data);
+    setCodesLoading(false);
+  };
+
+  const generateCode = async () => {
+    setGeneratingCode(true);
+    const res = await fetch('/api/admin/codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: newLabel }),
+    });
+    const created = await res.json();
+    setCodes(prev => [created, ...prev]);
+    setNewLabel('');
+    setGeneratingCode(false);
+  };
+
+  const toggleCode = async (id: string, current: boolean) => {
+    const res = await fetch(`/api/admin/codes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !current }),
+    });
+    if (res.ok) setCodes(prev => prev.map(c => c.id === id ? { ...c, active: !current } : c));
+  };
+
+  const deleteCode = async (id: string) => {
+    if (!confirm('Smazat tento kód?')) return;
+    await fetch(`/api/admin/codes/${id}`, { method: 'DELETE' });
+    setCodes(prev => prev.filter(c => c.id !== id));
+  };
+
+  const copyCode = (id: string, code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   useEffect(() => {
     fetchProviders();
     fetch('/api/admin/appointments')
       .then(r => r.json())
       .then(data => Array.isArray(data) && setAppointments(data))
       .finally(() => setApptLoading(false));
+    fetchCodes();
   }, []);
 
   const handleLogout = async () => {
@@ -130,12 +180,18 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-8">
-          {(['providers', 'appointments'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === tab ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
-              {tab === 'providers' ? `👥 Profily (${providers.length})` : `📅 Poptávky (${appointments.length})`}
-            </button>
-          ))}
+          <button onClick={() => setActiveTab('providers')}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'providers' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+            👥 Profily ({providers.length})
+          </button>
+          <button onClick={() => setActiveTab('appointments')}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'appointments' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+            📅 Poptávky ({appointments.length})
+          </button>
+          <button onClick={() => setActiveTab('codes')}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === 'codes' ? 'bg-brand text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+            🔑 Přístupové kódy ({codes.length})
+          </button>
         </div>
 
         {/* Stats */}
@@ -192,6 +248,70 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'codes' && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-800">
+              <h2 className="font-bold text-lg mb-4">🔑 Přístupové kódy pro zobrazení kontaktů</h2>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="text"
+                  placeholder="Jméno zákazníka (volitelné)"
+                  value={newLabel}
+                  onChange={e => setNewLabel(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && generateCode()}
+                  className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
+                />
+                <button
+                  onClick={generateCode}
+                  disabled={generatingCode}
+                  className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {generatingCode ? '…' : '+ Vygenerovat kód'}
+                </button>
+              </div>
+            </div>
+            {codesLoading ? (
+              <div className="text-center py-16 text-gray-500">Načítám...</div>
+            ) : codes.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">Žádné kódy zatím. Vygenerujte první.</div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+                {codes.map(c => (
+                  <div key={c.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <span className={`font-mono text-lg font-bold tracking-widest ${c.active ? 'text-brand' : 'text-gray-600 line-through'}`}>
+                        {c.code}
+                      </span>
+                      <button
+                        onClick={() => copyCode(c.id, c.code)}
+                        className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2 py-1 rounded transition-colors"
+                      >
+                        {copiedId === c.id ? '✓ Zkopírováno' : '📋 Kopírovat'}
+                      </button>
+                      {c.label && <span className="text-sm text-gray-400">{c.label}</span>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString('cs-CZ')}</span>
+                      <button
+                        onClick={() => toggleCode(c.id, c.active)}
+                        className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${c.active ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400' : 'bg-gray-700 text-gray-500 hover:bg-green-500/20 hover:text-green-400'}`}
+                      >
+                        {c.active ? '✓ Aktivní' : '✗ Zakázán'}
+                      </button>
+                      <button
+                        onClick={() => deleteCode(c.id)}
+                        className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1 rounded-lg transition-colors"
+                      >
+                        Smazat
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

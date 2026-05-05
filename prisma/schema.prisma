@@ -62,3 +62,11 @@ model Review {
   comment    String?
   createdAt  DateTime @default(now())
 }
+
+model AccessCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  label     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
