@@ -67,8 +67,12 @@ export default function AdminDashboard() {
       body: JSON.stringify({ label: newLabel }),
     });
     const created = await res.json();
-    setCodes(prev => [created, ...prev]);
-    setNewLabel('');
+    if (res.ok && created.code) {
+      setCodes(prev => [created, ...prev]);
+      setNewLabel('');
+    } else {
+      alert('Chyba: ' + (created.error ?? 'Nepodařilo se vygenerovat kód.'));
+    }
     setGeneratingCode(false);
   };
 
