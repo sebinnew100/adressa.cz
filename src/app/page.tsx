@@ -29,33 +29,37 @@ export default function HomePage() {
       <Header />
       <main className="flex-1">
         <Hero />
-        <CategoryGrid />
-        <HowItWorks />
 
-        {/* Customer request CTA */}
-        <section className="py-14" style={{ backgroundColor: '#1DBF73' }}>
+        {/* Customer request CTA — visible immediately below the hero */}
+        <section style={{ backgroundColor: '#f0fdf4', borderTop: '3px solid #1DBF73', borderBottom: '3px solid #1DBF73' }} className="py-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
             <div>
-              <h2 className="text-2xl font-bold text-white">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#1DBF73' }}>
+                {language === 'cs' ? 'Pro zákazníky' : 'For customers'}
+              </p>
+              <h2 className="text-2xl font-bold" style={{ color: '#1e3a2f' }}>
                 {language === 'cs'
                   ? 'Nenašli jste, co hledáte?'
                   : "Can't find what you need?"}
               </h2>
-              <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <p className="mt-1 text-sm text-gray-600">
                 {language === 'cs'
-                  ? 'Přidejte poptávku a nechte profesionály, aby vás sami kontaktovali.'
-                  : 'Post a request and let qualified professionals come to you.'}
+                  ? 'Popište svoji poptávku — profesionálové vás sami kontaktují.'
+                  : 'Describe what you need — professionals will contact you directly.'}
               </p>
             </div>
             <button
               onClick={() => router.push('/poptavky/nova')}
-              className="flex-shrink-0 bg-white font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md hover:bg-gray-100"
-              style={{ color: '#1DBF73' }}
+              className="flex-shrink-0 font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md hover:opacity-90"
+              style={{ backgroundColor: '#1DBF73', color: '#fff' }}
             >
               {language === 'cs' ? '+ Přidat poptávku' : '+ Post a Request'}
             </button>
           </div>
         </section>
+
+        <CategoryGrid />
+        <HowItWorks />
 
         {/* Featured providers */}
         {featured.length > 0 && (
