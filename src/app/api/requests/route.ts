@@ -9,7 +9,13 @@ export async function GET() {
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
-  return NextResponse.json(requests);
+  // Strip contact details — only revealed after access code verification
+  const safe = requests.map(({ contactPhone, contactEmail, ...rest }) => ({
+    ...rest,
+    contactPhone: null,
+    contactEmail: null,
+  }));
+  return NextResponse.json(safe);
 }
 
 export async function POST(req: NextRequest) {

@@ -10,11 +10,14 @@ export const metadata: Metadata = {
 };
 
 export default async function PoptavkyPage() {
-  const requests = await prisma.serviceRequest.findMany({
+  const raw = await prisma.serviceRequest.findMany({
     where: { active: true },
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
+
+  // Strip contact details from server render — only revealed after code verification
+  const requests = raw.map(r => ({ ...r, contactPhone: null, contactEmail: null }));
 
   return <RequestsBoard requests={requests} />;
 }
