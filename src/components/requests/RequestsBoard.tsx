@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ShareBar } from '@/components/ui/ShareBar';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import type { ServiceRequest } from '@prisma/client';
@@ -304,6 +305,11 @@ export function RequestsBoard({ requests: initial }: { requests: ServiceRequest[
                   </div>
                   <span className="text-xs text-gray-400">{date}</span>
                 </div>
+                <ShareBar
+                  url={`https://adressa.cz/poptavky`}
+                  title={r.title}
+                  language={language}
+                />
               </div>
             );
           })}

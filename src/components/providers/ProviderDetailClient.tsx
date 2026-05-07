@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { ShareBar } from '@/components/ui/ShareBar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
@@ -247,6 +248,12 @@ export function ProviderDetailClient({ provider, initialReviews = [] }: { provid
                 )}
               </div>
             </div>
+
+            <ShareBar
+              url={`https://adressa.cz/providers/${provider.id}`}
+              title={`${provider.fullName} – ${service ? (language === 'cs' ? service.nameCz : service.nameEn) : ''} | adressa.cz`}
+              language={language}
+            />
 
             {provider.description && (
               <div className="mb-6 pb-6 border-b border-gray-100">
