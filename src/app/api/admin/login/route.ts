@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
+import { checkRateLimit, getIp } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
-  const { password } = await request.json();
-  const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin123';
+  // 5 attempts per 15 minutes per IP
+  const ip = getIp(request);
+  if (!checkRateLimit(`login:${ip}`, 5, 15 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Try again in 15 minutes.' },
+      { status: 429 }
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const { password } = body;
+
+  if (!password || typeof password !== 'string') {
+    return NextResponse.json({ error: 'Password required.' }, { status: 400 });
+  }
+
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    return NextResponse.json({ error: 'Server misconfiguration.' }, { status: 500 });
+  }
 
   if (password !== adminPassword) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
@@ -15,7 +34,7 @@ export async function POST(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 
   return res;
