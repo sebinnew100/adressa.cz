@@ -8,33 +8,34 @@ export const dynamic = 'force-dynamic';
 const BASE = 'https://www.adressa.cz';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const providers = await prisma.provider.findMany({
-    where: { active: true },
-    select: { id: true, updatedAt: true, serviceId: true, cityId: true },
-  });
+  const [providers, serviceRequests] = await Promise.all([
+    prisma.provider.findMany({
+      where: { active: true },
+      select: { id: true, updatedAt: true },
+    }),
+    prisma.serviceRequest.findMany({
+      where: { active: true },
+      select: { id: true, createdAt: true },
+    }),
+  ]);
 
-  const serviceIds = new Set(SERVICES.map(s => s.id));
-  const cityIds = new Set(CITIES.map(c => c.id));
-
-  // Unique service+city combos that have at least one provider
-  const combos = new Map<string, { service: string; city: string }>();
-  for (const p of providers) {
-    if (serviceIds.has(p.serviceId) && cityIds.has(p.cityId)) {
-      combos.set(`${p.serviceId}/${p.cityId}`, { service: p.serviceId, city: p.cityId });
-    }
-  }
+  // All 700 service×city landing pages
+  const landingPages = SERVICES.flatMap(s =>
+    CITIES.map(c => ({
+      url: `${BASE}/${s.id}/${c.id}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))
+  );
 
   return [
     { url: BASE, changeFrequency: 'daily', priority: 1 },
     { url: `${BASE}/providers`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE}/poptavky`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE}/register`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/faq`, changeFrequency: 'monthly', priority: 0.5 },
 
-    // Landing pages per service+city
-    ...Array.from(combos.values()).map(({ service, city }) => ({
-      url: `${BASE}/${service}/${city}`,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    })),
+    ...landingPages,
 
     // Individual provider profiles
     ...providers.map(p => ({
@@ -42,6 +43,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: p.updatedAt,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
+    })),
+
+    // Individual service request pages
+    ...serviceRequests.map(r => ({
+      url: `${BASE}/poptavky/${r.id}`,
+      lastModified: r.createdAt,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
     })),
   ];
 }

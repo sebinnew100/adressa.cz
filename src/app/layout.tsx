@@ -15,6 +15,18 @@ export const metadata: Metadata = {
   description:
     'Najděte místní řemeslníky a profesionály v České republice. Elektrikáři, instalatéři, malíři, zubaři a mnoho dalších.',
   keywords: 'řemeslníci, elektrikář, instalatér, malíř, zubař, Praha, Brno, Ostrava, Česká republika',
+  openGraph: {
+    title: 'adressa.cz — Místní poskytovatelé služeb',
+    description: 'Najděte místní řemeslníky a profesionály v České republice.',
+    url: 'https://www.adressa.cz',
+    siteName: 'adressa.cz',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'adressa.cz — Místní poskytovatelé služeb',
+    description: 'Najděte místní řemeslníky a profesionály v České republice.',
+  },
   other: {
     monetag: '8ebc365aff2bd853853de756c188a822',
   },

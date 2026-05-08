@@ -306,7 +306,7 @@ export function RequestsBoard({ requests: initial }: { requests: ServiceRequest[
                   <span className="text-xs text-gray-400">{date}</span>
                 </div>
                 <ShareBar
-                  url={`https://adressa.cz/poptavky`}
+                  url={`https://www.adressa.cz/poptavky/${r.id}`}
                   title={r.title}
                   language={language}
                 />
