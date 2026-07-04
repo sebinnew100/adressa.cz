@@ -95,6 +95,15 @@ export default function AdminArticlesPage() {
                     {a.published ? '✓ Publikováno' : '✗ Koncept'}
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {a.published && (
+                      <Link
+                        href={`/clanky/${a.slug}`}
+                        target="_blank"
+                        className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        ↗ Zobrazit
+                      </Link>
+                    )}
                     <Link
                       href={`/admin/articles/${a.id}/edit`}
                       className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"

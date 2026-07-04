@@ -73,11 +73,23 @@ export default function EditArticlePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
-        <button onClick={() => router.push('/admin/articles')} className="text-gray-400 hover:text-white transition-colors text-sm">
-          ← Zpět
-        </button>
-        <h1 className="font-bold">Upravit článek: {article.title}</h1>
+      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between gap-4 sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/admin/articles')} className="text-gray-400 hover:text-white transition-colors text-sm">
+            ← Zpět
+          </button>
+          <h1 className="font-bold">Upravit článek: {article.title}</h1>
+        </div>
+        {article.published && (
+          <a
+            href={`/clanky/${article.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ↗ Zobrazit na webu
+          </a>
+        )}
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-10">
