@@ -19,6 +19,7 @@ const SERVICE_QUERIES: Record<string, string> = {
   klempir: 'roofer metal work',
   'realitni-makler': 'real estate agent house',
   restaurace: 'restaurant kitchen chef',
+  kavarna: 'cafe coffee shop interior',
   freelancer: 'freelancer laptop workspace',
   architekt: 'architect blueprint design',
   psycholog: 'therapy counseling office',
