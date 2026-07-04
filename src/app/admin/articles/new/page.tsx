@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { SERVICES } from '@/data/services';
+import { CITIES } from '@/data/cities';
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -94,6 +96,21 @@ export default function NewArticlePage() {
           <div>
             <label className={labelClass}>Obsah článku *</label>
             <textarea name="content" required rows={14} className={`${inputClass} resize-none`} placeholder="Text článku. Nový odstavec oddělte prázdným řádkem." />
+          </div>
+
+          <div>
+            <label className={labelClass}>Odkaz na nabídku (nepovinné)</label>
+            <p className="text-gray-500 text-xs mb-3">Pokud článek souvisí s konkrétní službou a městem, zobrazí se na konci tlačítko odkazující na danou nabídku.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <select name="relatedServiceId" defaultValue="" className={inputClass}>
+                <option value="">— Bez služby —</option>
+                {SERVICES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.nameCz}</option>)}
+              </select>
+              <select name="relatedCityId" defaultValue="" className={inputClass}>
+                <option value="">— Bez města —</option>
+                {CITIES.map(c => <option key={c.id} value={c.id}>{c.nameCz}</option>)}
+              </select>
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-300">

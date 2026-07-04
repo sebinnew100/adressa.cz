@@ -48,6 +48,8 @@ export async function PUT(
     const excerpt = (formData.get('excerpt') as string | null)?.trim() || null;
     const content = (formData.get('content') as string | null)?.trim() ?? '';
     const published = formData.get('published') === 'on';
+    const relatedServiceId = (formData.get('relatedServiceId') as string | null) || null;
+    const relatedCityId = (formData.get('relatedCityId') as string | null) || null;
     const rawSlug = (formData.get('slug') as string | null)?.trim() || title;
     const slug = slugify(rawSlug);
     const coverImageFile = formData.get('coverImage') as File | null;
@@ -65,7 +67,7 @@ export async function PUT(
 
     const updated = await prisma.article.update({
       where: { id: params.id },
-      data: { title, slug, excerpt, content, coverImagePath, published },
+      data: { title, slug, excerpt, content, coverImagePath, published, relatedServiceId, relatedCityId },
     });
 
     return NextResponse.json(updated);

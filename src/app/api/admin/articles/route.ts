@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     const excerpt = (formData.get('excerpt') as string | null)?.trim() || null;
     const content = (formData.get('content') as string | null)?.trim() ?? '';
     const published = formData.get('published') === 'on';
+    const relatedServiceId = (formData.get('relatedServiceId') as string | null) || null;
+    const relatedCityId = (formData.get('relatedCityId') as string | null) || null;
     let slug = (formData.get('slug') as string | null)?.trim() || slugify(title);
     slug = slugify(slug);
     const coverImageFile = formData.get('coverImage') as File | null;
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const article = await prisma.article.create({
-      data: { title, slug, excerpt, content, coverImagePath, published },
+      data: { title, slug, excerpt, content, coverImagePath, published, relatedServiceId, relatedCityId },
     });
 
     return NextResponse.json(article, { status: 201 });

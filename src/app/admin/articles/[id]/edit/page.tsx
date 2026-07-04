@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { SERVICES } from '@/data/services';
+import { CITIES } from '@/data/cities';
 
 interface Article {
   id: string;
@@ -11,6 +13,8 @@ interface Article {
   excerpt: string | null;
   content: string;
   coverImagePath: string | null;
+  relatedServiceId: string | null;
+  relatedCityId: string | null;
   published: boolean;
 }
 
@@ -144,6 +148,21 @@ export default function EditArticlePage() {
           <div>
             <label className={labelClass}>Obsah článku *</label>
             <textarea name="content" required rows={14} defaultValue={article.content} className={`${inputClass} resize-none`} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Odkaz na nabídku (nepovinné)</label>
+            <p className="text-gray-500 text-xs mb-3">Pokud článek souvisí s konkrétní službou a městem, zobrazí se na konci tlačítko odkazující na danou nabídku.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <select name="relatedServiceId" defaultValue={article.relatedServiceId ?? ''} className={inputClass}>
+                <option value="">— Bez služby —</option>
+                {SERVICES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.nameCz}</option>)}
+              </select>
+              <select name="relatedCityId" defaultValue={article.relatedCityId ?? ''} className={inputClass}>
+                <option value="">— Bez města —</option>
+                {CITIES.map(c => <option key={c.id} value={c.id}>{c.nameCz}</option>)}
+              </select>
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-300">
