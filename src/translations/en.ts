@@ -36,6 +36,10 @@ export const en: Translations = {
     title: 'Top Professionals',
     subtitle: 'Trusted experts from across the Czech Republic',
   },
+  articlesHome: {
+    title: 'Latest Articles',
+    subtitle: 'Tips and advice for finding local professionals',
+  },
   providers: {
     title: 'Service Providers',
     filterCity: 'Filter by City',

@@ -34,6 +34,10 @@ export const cs = {
     title: 'Oblíbení odborníci',
     subtitle: 'Ověření profesionálové z celé České republiky',
   },
+  articlesHome: {
+    title: 'Nejnovější články',
+    subtitle: 'Rady a tipy pro výběr místních odborníků',
+  },
   providers: {
     title: 'Poskytovatelé služeb',
     filterCity: 'Filtrovat podle města',

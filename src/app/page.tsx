@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
@@ -12,15 +14,30 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { CITIES } from '@/data/cities';
 import type { Provider } from '@/types';
 
+interface ArticlePreview {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverImagePath: string | null;
+  createdAt: string;
+}
+
 export default function HomePage() {
   const { language, t } = useLanguage();
   const router = useRouter();
   const [featured, setFeatured] = useState<Provider[]>([]);
+  const [articles, setArticles] = useState<ArticlePreview[]>([]);
 
   useEffect(() => {
     fetch('/api/providers?limit=8')
       .then(r => r.json())
       .then(data => Array.isArray(data) && setFeatured(data.slice(0, 8)))
+      .catch(() => null);
+
+    fetch('/api/articles?limit=3')
+      .then(r => r.json())
+      .then(data => Array.isArray(data) && setArticles(data))
       .catch(() => null);
   }, []);
 
@@ -80,6 +97,55 @@ export default function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                 {featured.map(p => (
                   <ProviderCard key={p.id} provider={p} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Latest articles */}
+        {articles.length > 0 && (
+          <section className="py-16 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-ink">{t.articlesHome.title}</h2>
+                  <p className="text-ink-lighter text-sm mt-1">{t.articlesHome.subtitle}</p>
+                </div>
+                <Link
+                  href="/clanky"
+                  className="text-brand hover:text-brand-hover text-sm font-medium transition-colors"
+                >
+                  {t.categories.viewAll} →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {articles.map(a => (
+                  <Link
+                    key={a.id}
+                    href={`/clanky/${a.slug}`}
+                    className="group block bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+                  >
+                    <div className="aspect-video bg-gray-100 overflow-hidden">
+                      {a.coverImagePath && (
+                        <Image
+                          src={a.coverImagePath}
+                          alt={a.title}
+                          width={400}
+                          height={225}
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-bold text-ink group-hover:text-brand transition-colors line-clamp-2">
+                        {a.title}
+                      </h3>
+                      {a.excerpt && (
+                        <p className="text-gray-500 text-sm mt-2 line-clamp-2">{a.excerpt}</p>
+                      )}
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
