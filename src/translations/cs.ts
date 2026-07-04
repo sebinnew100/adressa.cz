@@ -3,6 +3,7 @@ export const cs = {
     home: 'Domů',
     browse: 'Procházet',
     requests: 'Poptávky',
+    articles: 'Články',
     register: 'Přidat profil',
     faq: 'FAQ',
   },

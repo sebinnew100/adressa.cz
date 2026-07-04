@@ -38,6 +38,7 @@ export function Header() {
           {navLink('/', t.nav.home)}
           {navLink('/providers', t.nav.browse)}
           {navLink('/poptavky', t.nav.requests)}
+          {navLink('/clanky', t.nav.articles)}
           {navLink('/faq', t.nav.faq)}
         </nav>
 

@@ -70,3 +70,15 @@ model AccessCode {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model Article {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        String   @db.Text
+  coverImagePath String?
+  published      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

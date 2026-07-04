@@ -208,6 +208,12 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <Link
+            href="/admin/articles"
+            className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+          >
+            📝 Články
+          </Link>
+          <Link
             href="/"
             target="_blank"
             className="text-sm text-gray-400 hover:text-white transition-colors"

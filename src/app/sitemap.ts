@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const BASE = 'https://www.adressa.cz';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [providers, serviceRequests] = await Promise.all([
+  const [providers, serviceRequests, articles] = await Promise.all([
     prisma.provider.findMany({
       where: { active: true },
       select: { id: true, updatedAt: true },
@@ -16,6 +16,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.serviceRequest.findMany({
       where: { active: true },
       select: { id: true, createdAt: true },
+    }),
+    prisma.article.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
     }),
   ]);
 
@@ -32,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: BASE, changeFrequency: 'daily', priority: 1 },
     { url: `${BASE}/providers`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE}/poptavky`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE}/clanky`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/register`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/faq`, changeFrequency: 'monthly', priority: 0.5 },
 
@@ -50,6 +55,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE}/poptavky/${r.id}`,
       lastModified: r.createdAt,
       changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
+
+    // Individual articles
+    ...articles.map(a => ({
+      url: `${BASE}/clanky/${a.slug}`,
+      lastModified: a.updatedAt,
+      changeFrequency: 'weekly' as const,
       priority: 0.6,
     })),
   ];

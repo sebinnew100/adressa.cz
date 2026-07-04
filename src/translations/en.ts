@@ -5,6 +5,7 @@ export const en: Translations = {
     home: 'Home',
     browse: 'Browse',
     requests: 'Requests',
+    articles: 'Articles',
     register: 'List Your Service',
     faq: 'FAQ',
   },
