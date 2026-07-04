@@ -25,6 +25,7 @@ model Provider {
   updatedAt   DateTime  @updatedAt
   reviews      Review[]
   appointments AppointmentRequest[]
+  missions     GameMission[]
 }
 
 model AppointmentRequest {
@@ -85,4 +86,28 @@ model Article {
   published         Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model GameMission {
+  id               String   @id @default(cuid())
+  providerId       String
+  provider         Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  rewardPoints     Int
+  isGrandChallenge Boolean  @default(false)
+  expiresAt        DateTime
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  submissions      GameSubmission[]
+}
+
+model GameSubmission {
+  id            String      @id @default(cuid())
+  deviceId      String
+  missionId     String
+  mission       GameMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  photoPath     String
+  status        String      @default("pending")
+  pointsAwarded Int?
+  createdAt     DateTime    @default(now())
+  reviewedAt    DateTime?
 }
