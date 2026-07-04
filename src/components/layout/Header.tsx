@@ -44,6 +44,12 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          <Link
+            href="/hra"
+            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md shadow-purple-500/30 transition-all hover:scale-105"
+          >
+            🎮 <span className="hidden sm:inline">Herní mód</span>
+          </Link>
           <LanguageSwitcher />
           <Link
             href="/register"

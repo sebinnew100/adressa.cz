@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { getOrCreateDeviceId } from '@/lib/gameDevice';
@@ -110,13 +111,19 @@ export default function GameModePage() {
           <span className="text-gray-600">|</span>
           <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 GAME MODE</span>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <span className="bg-yellow-500/10 text-yellow-400 font-bold px-3 py-1.5 rounded-full">
             💰 {totalPoints} bodů
           </span>
           <span className="bg-purple-500/10 text-purple-300 font-bold px-3 py-1.5 rounded-full">
             ⭐ Lv. {level}
           </span>
+          <Link
+            href="/"
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors"
+          >
+            ↩ Zpět na web
+          </Link>
         </div>
       </header>
 
