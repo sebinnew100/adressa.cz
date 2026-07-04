@@ -139,15 +139,28 @@ export default async function ClankySlugPage({ params }: { params: { slug: strin
           </p>
         )}
         {article.coverImagePath && (
-          <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden mb-8">
-            <Image
-              src={article.coverImagePath}
-              alt={article.title}
-              width={800}
-              height={450}
-              className="object-cover w-full h-full"
-              priority
-            />
+          <div className="mb-8">
+            <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
+              <Image
+                src={article.coverImagePath}
+                alt={article.title}
+                width={800}
+                height={450}
+                className="object-cover w-full h-full"
+                priority
+              />
+            </div>
+            {article.coverImageCredit && (
+              <p className="text-xs text-gray-400 mt-2 text-right">
+                Foto:{' '}
+                {article.coverImageCreditUrl ? (
+                  <a href={article.coverImageCreditUrl} target="_blank" rel="noopener noreferrer" className="hover:text-brand transition-colors">
+                    {article.coverImageCredit}
+                  </a>
+                ) : article.coverImageCredit}
+                {' / Unsplash'}
+              </p>
+            )}
           </div>
         )}
         <h1 className="text-3xl sm:text-4xl font-bold text-ink mb-3">{article.title}</h1>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
+import { fetchArticleCoverImage } from '@/lib/unsplash';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,15 +55,27 @@ export async function POST(request: NextRequest) {
     }
 
     let coverImagePath: string | null = null;
+    let coverImageCredit: string | null = null;
+    let coverImageCreditUrl: string | null = null;
+
     if (coverImageFile && coverImageFile.size > 0) {
       const ext = coverImageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
       const filename = `articles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const blob = await put(filename, coverImageFile, { access: 'public' });
       coverImagePath = blob.url;
+    } else {
+      const fetched = await fetchArticleCoverImage(relatedServiceId, (filename, bytes) =>
+        put(filename, bytes, { access: 'public' })
+      );
+      if (fetched) {
+        coverImagePath = fetched.coverImagePath;
+        coverImageCredit = fetched.coverImageCredit;
+        coverImageCreditUrl = fetched.coverImageCreditUrl;
+      }
     }
 
     const article = await prisma.article.create({
-      data: { title, slug, excerpt, content, coverImagePath, published, relatedServiceId, relatedCityId },
+      data: { title, slug, excerpt, content, coverImagePath, coverImageCredit, coverImageCreditUrl, published, relatedServiceId, relatedCityId },
     });
 
     return NextResponse.json(article, { status: 201 });

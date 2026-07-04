@@ -72,15 +72,17 @@ model AccessCode {
 }
 
 model Article {
-  id              String   @id @default(cuid())
-  title           String
-  slug            String   @unique
-  excerpt         String?
-  content         String   @db.Text
-  coverImagePath  String?
-  relatedServiceId String?
-  relatedCityId   String?
-  published       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(cuid())
+  title             String
+  slug              String   @unique
+  excerpt           String?
+  content           String   @db.Text
+  coverImagePath    String?
+  coverImageCredit  String?
+  coverImageCreditUrl String?
+  relatedServiceId  String?
+  relatedCityId     String?
+  published         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

@@ -58,16 +58,20 @@ export async function PUT(
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     let coverImagePath = existing.coverImagePath;
+    let coverImageCredit = existing.coverImageCredit;
+    let coverImageCreditUrl = existing.coverImageCreditUrl;
     if (coverImageFile && coverImageFile.size > 0) {
       const ext = coverImageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
       const filename = `articles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const blob = await put(filename, coverImageFile, { access: 'public' });
       coverImagePath = blob.url;
+      coverImageCredit = null;
+      coverImageCreditUrl = null;
     }
 
     const updated = await prisma.article.update({
       where: { id: params.id },
-      data: { title, slug, excerpt, content, coverImagePath, published, relatedServiceId, relatedCityId },
+      data: { title, slug, excerpt, content, coverImagePath, coverImageCredit, coverImageCreditUrl, published, relatedServiceId, relatedCityId },
     });
 
     return NextResponse.json(updated);
