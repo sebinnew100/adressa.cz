@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
+import { ARTICLE_CATEGORIES } from '@/data/articleCategories';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: a.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.6,
+    })),
+
+    // Article category hub pages
+    ...ARTICLE_CATEGORIES.map(c => ({
+      url: `${BASE}/clanky/${c.id}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
     })),
   ];
 }

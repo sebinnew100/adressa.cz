@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
+import { ARTICLE_CATEGORIES } from '@/data/articleCategories';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,19 @@ export default async function ClankyPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
       <h1 className="text-3xl font-bold text-ink mb-2">Články</h1>
-      <p className="text-gray-500 mb-10">Rady a tipy pro výběr místních řemeslníků a odborníků.</p>
+      <p className="text-gray-500 mb-6">Rady a tipy pro výběr místních řemeslníků a odborníků.</p>
+
+      <div className="flex flex-wrap gap-2 mb-10">
+        {ARTICLE_CATEGORIES.map(c => (
+          <Link
+            key={c.id}
+            href={`/clanky/${c.id}`}
+            className="bg-white border border-gray-200 text-ink text-sm font-medium px-4 py-2 rounded-full hover:border-brand hover:text-brand transition-colors"
+          >
+            {c.nameCz}
+          </Link>
+        ))}
+      </div>
 
       {articles.length === 0 ? (
         <p className="text-gray-500 py-16 text-center">Zatím tu nejsou žádné články.</p>
