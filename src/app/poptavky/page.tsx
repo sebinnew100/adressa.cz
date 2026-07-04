@@ -10,11 +10,21 @@ export const metadata: Metadata = {
 };
 
 export default async function PoptavkyPage() {
-  const raw = await prisma.serviceRequest.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-  });
+  let raw;
+  try {
+    raw = await prisma.serviceRequest.findMany({
+      where: { active: true },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+  } catch {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <p className="text-lg font-medium">Poptávky se nepodařilo načíst.</p>
+        <p className="text-gray-500 mt-2">Zkuste stránku prosím znovu načíst za chvíli.</p>
+      </div>
+    );
+  }
 
   // Strip contact details from server render — only revealed after code verification
   const requests = raw.map(r => ({ ...r, contactPhone: null, contactEmail: null }));
