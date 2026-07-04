@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const provider = await prisma.provider.findUnique({ where: { id: providerId } });
     if (!provider) return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://adresarcz.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adresarcz.vercel.app';
 
     const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],

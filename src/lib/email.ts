@@ -53,7 +53,7 @@ export async function sendVerificationEmail(
   const resend = getResend();
   if (!resend) return false;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://adressa.cz';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
   const verifyUrl = `${baseUrl}/api/verify-email?token=${token}`;
 
   await resend.emails.send({
