@@ -15,10 +15,24 @@ function urgencyColor(ms: number): string {
   return '#2563eb';
 }
 
+const FORK_KNIFE_SVG = `
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M7 2v7.5c0 .9-.7 1.7-1.5 1.9V22h-1V11.4C3.7 11.2 3 10.4 3 9.5V2h1v6.5h.75V2h1v6.5H6V2h1z" fill="white"/>
+    <path d="M16 2c-1.4 0-2.5 2-2.5 4.5S14.6 11 16 11v11h1V2h-1z" fill="white"/>
+  </svg>
+`;
+
+const CROWN_SVG = `
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 8.5l4 3 6-6 6 6 4-3-1.6 9.5H3.6L2 8.5z" fill="white"/>
+    <rect x="3" y="19" width="18" height="2" rx="0.5" fill="white"/>
+  </svg>
+`;
+
 function buildIcon(mission: Mission, now: number, animateIn: boolean) {
   const remaining = new Date(mission.expiresAt).getTime() - now;
   const color = urgencyColor(remaining);
-  const crown = mission.isGrandChallenge ? '👑' : '🎯';
+  const iconSvg = mission.isGrandChallenge ? CROWN_SVG : FORK_KNIFE_SVG;
   const size = mission.isGrandChallenge ? 46 : 36;
   const entranceClass = animateIn ? 'map-pin-zoom-in' : '';
 
@@ -37,10 +51,9 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
           display:flex;
           align-items:center;
           justify-content:center;
-          font-size:${mission.isGrandChallenge ? 20 : 16}px;
           box-shadow:0 3px 10px rgba(0,0,0,0.35);
           cursor:pointer;
-        ">${crown}</div>
+        ">${iconSvg}</div>
       </div>
     `,
     iconSize: [size, size],
