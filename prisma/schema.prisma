@@ -105,6 +105,7 @@ model GameMission {
 model GameSubmission {
   id            String      @id @default(cuid())
   deviceId      String
+  nickname      String?
   missionId     String
   mission       GameMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   photoPath     String

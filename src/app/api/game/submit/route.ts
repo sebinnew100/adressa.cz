@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     const deviceId = (formData.get('deviceId') as string | null)?.trim() ?? '';
     const missionId = (formData.get('missionId') as string | null)?.trim() ?? '';
     const photoFile = formData.get('photo') as File | null;
+    const nickname = (formData.get('nickname') as string | null)?.trim().slice(0, 20) || null;
 
     if (!deviceId || !missionId || !photoFile || photoFile.size === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const blob = await put(filename, photoFile, { access: 'public' });
 
     const submission = await prisma.gameSubmission.create({
-      data: { deviceId, missionId, photoPath: blob.url, status: 'pending' },
+      data: { deviceId, nickname, missionId, photoPath: blob.url, status: 'pending' },
     });
 
     return NextResponse.json(submission, { status: 201 });

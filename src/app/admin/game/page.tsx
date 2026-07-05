@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 interface Submission {
   id: string;
   deviceId: string;
+  nickname: string | null;
   photoPath: string;
   status: string;
   pointsAwarded: number | null;
@@ -80,6 +81,9 @@ export default function AdminGamePage() {
                   <div className="font-semibold">{s.mission.provider.fullName}</div>
                   <div className="text-xs text-gray-400 mt-1">
                     Odměna: {s.mission.rewardPoints} bodů {s.mission.isGrandChallenge && '👑'}
+                  </div>
+                  <div className="text-xs text-purple-400 mt-1">
+                    🏷️ {s.nickname || `Hráč #${s.deviceId.slice(-4).toUpperCase()}`}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">{new Date(s.createdAt).toLocaleString('cs-CZ')}</div>
                   <div className="flex gap-2 mt-3">

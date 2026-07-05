@@ -6,9 +6,15 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
-import { getOrCreateDeviceId } from '@/lib/gameDevice';
+import { getOrCreateDeviceId, getNickname, setNickname } from '@/lib/gameDevice';
 
 import type { Mission } from '@/types/game';
+
+interface LeaderboardEntry {
+  deviceId: string;
+  nickname: string | null;
+  points: number;
+}
 
 const MissionMap = dynamic(() => import('@/components/game/MissionMap'), { ssr: false });
 
@@ -37,6 +43,10 @@ export default function GameModePage() {
   const [uploading, setUploading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [deviceId, setDeviceId] = useState('');
+  const [nickname, setNicknameState] = useState('');
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState('');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   const fetchMissions = useCallback(async () => {
     const res = await fetch('/api/game/missions');
@@ -52,22 +62,38 @@ export default function GameModePage() {
     if (typeof data.totalPoints === 'number') setTotalPoints(data.totalPoints);
   }, []);
 
+  const fetchLeaderboard = useCallback(async () => {
+    const res = await fetch('/api/game/leaderboard');
+    const data = await res.json();
+    if (Array.isArray(data)) setLeaderboard(data);
+  }, []);
+
+  const saveNickname = () => {
+    setNickname(nicknameDraft);
+    setNicknameState(nicknameDraft.trim().slice(0, 20));
+    setEditingNickname(false);
+  };
+
   useEffect(() => {
     const id = getOrCreateDeviceId();
     setDeviceId(id);
+    setNicknameState(getNickname());
     fetchMissions();
     fetchStatus(id);
+    fetchLeaderboard();
 
     const tickTimer = setInterval(() => setNow(Date.now()), 1000);
     const missionsTimer = setInterval(fetchMissions, 30000);
     const statusTimer = setInterval(() => fetchStatus(id), 15000);
+    const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
 
     return () => {
       clearInterval(tickTimer);
       clearInterval(missionsTimer);
       clearInterval(statusTimer);
+      clearInterval(leaderboardTimer);
     };
-  }, [fetchMissions, fetchStatus]);
+  }, [fetchMissions, fetchStatus, fetchLeaderboard]);
 
   const level = Math.floor(totalPoints / 200) + 1;
 
@@ -80,6 +106,7 @@ export default function GameModePage() {
     const formData = new FormData(e.currentTarget);
     formData.set('deviceId', deviceId);
     formData.set('missionId', selected.id);
+    formData.set('nickname', nickname);
 
     const res = await fetch('/api/game/submit', { method: 'POST', body: formData });
     if (res.ok) {
@@ -109,6 +136,31 @@ export default function GameModePage() {
           <span className="bg-purple-500/10 text-purple-300 font-bold px-3 py-1.5 rounded-full">
             ⭐ Lv. {level}
           </span>
+          {editingNickname ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={nicknameDraft}
+                onChange={e => setNicknameDraft(e.target.value.slice(0, 20))}
+                onKeyDown={e => { if (e.key === 'Enter') saveNickname(); }}
+                placeholder="Přezdívka"
+                className="w-28 bg-gray-800 border border-gray-700 rounded-full px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <button
+                onClick={saveNickname}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-full transition-colors"
+              >
+                ✓
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNicknameDraft(nickname); setEditingNickname(true); }}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors text-xs"
+            >
+              🏷️ {nickname || 'Nastavit přezdívku'}
+            </button>
+          )}
           <Link
             href="/"
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors"
@@ -124,6 +176,37 @@ export default function GameModePage() {
             Navštivte podniky, splňte misi a nahrajte fotku jako důkaz. Po schválení adminem získáte body — 1000 bodů = 200 Kč.
           </p>
         </div>
+
+        {leaderboard.length > 0 && (
+          <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
+              🏆 Žebříček hráčů
+            </h2>
+            <div className="space-y-1.5">
+              {leaderboard.map((entry, i) => {
+                const isMe = entry.deviceId === deviceId;
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+                const displayName = entry.nickname || `Hráč #${entry.deviceId.slice(-4).toUpperCase()}`;
+                return (
+                  <div
+                    key={entry.deviceId}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                      isMe ? 'bg-purple-600/20 border border-purple-500/50' : 'bg-gray-800/50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-6 text-center font-bold">{medal}</span>
+                      <span className={isMe ? 'font-bold text-purple-300' : 'text-gray-300'}>
+                        {displayName}{isMe ? ' (vy)' : ''}
+                      </span>
+                    </span>
+                    <span className="font-bold text-yellow-400">{entry.points} b.</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {!loading && missions.length > 0 && (
           <div className="mb-8">
