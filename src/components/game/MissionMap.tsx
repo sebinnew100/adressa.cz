@@ -71,18 +71,28 @@ function buildingSvg(color: string, isGrandChallenge: boolean, uid: string): str
   `;
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function buildIcon(mission: Mission, now: number, animateIn: boolean) {
   const remaining = new Date(mission.expiresAt).getTime() - now;
   const color = urgencyColor(remaining);
   const size = mission.isGrandChallenge ? 58 : 46;
   const entranceClass = animateIn ? 'map-pin-zoom-in' : '';
   const badgeBlock = 26;
-  const totalHeight = size + badgeBlock;
+  const nameBlock = 18;
+  const totalHeight = badgeBlock + size + nameBlock;
+  const name = escapeHtml(mission.provider.fullName);
 
   return L.divIcon({
     className: '',
     html: `
-      <div class="${entranceClass}" style="width:${size}px;height:${totalHeight}px;">
+      <div class="${entranceClass}" style="width:110px;height:${totalHeight}px;">
         <div class="map-pin-bob" style="display:flex;flex-direction:column;align-items:center;">
           <div class="map-badge-pop" style="
             background:#facc15;
@@ -107,11 +117,24 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
             "></div>
             ${buildingSvg(color, mission.isGrandChallenge, mission.id)}
           </div>
+          <div style="
+            margin-top:2px;
+            max-width:110px;
+            background:rgba(17,24,39,0.85);
+            color:white;
+            font-size:9px;
+            font-weight:600;
+            padding:1px 6px;
+            border-radius:6px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+          ">${name}</div>
         </div>
       </div>
     `,
-    iconSize: [size, totalHeight],
-    iconAnchor: [size / 2, totalHeight - 7],
+    iconSize: [110, totalHeight],
+    iconAnchor: [55, badgeBlock + size - 7],
   });
 }
 
