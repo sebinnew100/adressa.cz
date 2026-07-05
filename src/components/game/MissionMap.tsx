@@ -98,20 +98,48 @@ function FitToView({ missions, userPos }: { missions: Mission[]; userPos: [numbe
   return null;
 }
 
-function useLiveLocation(): [number, number] | null {
+type LocationStatus = 'pending' | 'success' | 'denied' | 'unsupported' | 'error';
+
+function useLiveLocation(): { pos: [number, number] | null; status: LocationStatus } {
   const [pos, setPos] = useState<[number, number] | null>(null);
+  const [status, setStatus] = useState<LocationStatus>('pending');
 
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setStatus('unsupported');
+      return;
+    }
     const watchId = navigator.geolocation.watchPosition(
-      p => setPos([p.coords.latitude, p.coords.longitude]),
-      () => {},
+      p => {
+        setPos([p.coords.latitude, p.coords.longitude]);
+        setStatus('success');
+      },
+      err => {
+        setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'error');
+      },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  return pos;
+  return { pos, status };
+}
+
+function LocationBanner({ status }: { status: LocationStatus }) {
+  if (status === 'success') return null;
+
+  const messages: Record<Exclude<LocationStatus, 'success'>, string> = {
+    pending: '📍 Hledám vaši polohu…',
+    denied: '📍 Přístup k poloze byl zamítnut — povolte ho v nastavení prohlížeče, aby se zobrazila vaše panda.',
+    unsupported: '📍 Váš prohlížeč nepodporuje sdílení polohy.',
+    error: '📍 Polohu se nepodařilo zjistit. Zkontrolujte, že má prohlížeč/zařízení povolené služby polohy.',
+  };
+
+  return (
+    <div className="absolute top-3 left-3 z-[1000] bg-gray-900/90 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg max-w-xs">
+      {messages[status]}
+    </div>
+  );
 }
 
 export default function MissionMap({
@@ -124,10 +152,11 @@ export default function MissionMap({
   onSelect: (mission: Mission) => void;
 }) {
   const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
-  const userPos = useLiveLocation();
+  const { pos: userPos, status: locationStatus } = useLiveLocation();
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
+    <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
+      <LocationBanner status={locationStatus} />
       <MapContainer center={CB_CENTER} zoom={14} style={{ height: '100%', width: '100%', background: '#f1f3f4' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
