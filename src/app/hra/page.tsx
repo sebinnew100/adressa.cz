@@ -199,6 +199,16 @@ export default function GameModePage() {
             <p className="text-gray-400 text-sm mb-4">
               Nakupte cokoli u tohoto poskytovatele a nahrajte fotku jako důkaz nákupu. Odeslání čeká na schválení adminem.
             </p>
+            {selected.provider.latitude && selected.provider.longitude && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${selected.provider.latitude},${selected.provider.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-4 flex items-center justify-center gap-2 w-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-300 font-semibold py-2.5 rounded-lg transition-colors"
+              >
+                🧭 Navigovat na místo
+              </a>
+            )}
             {submitMessage ? (
               <p className="text-center py-4">{submitMessage}</p>
             ) : (
