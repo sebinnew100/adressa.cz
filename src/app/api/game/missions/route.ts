@@ -6,10 +6,14 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const missions = await prisma.gameMission.findMany({
-      where: { active: true, expiresAt: { gt: new Date() } },
+      where: {
+        active: true,
+        expiresAt: { gt: new Date() },
+        provider: { cityId: 'ceske-budejovice', serviceId: 'restaurace' },
+      },
       include: {
         provider: {
-          select: { id: true, fullName: true, serviceId: true, cityId: true, picturePath: true },
+          select: { id: true, fullName: true, serviceId: true, cityId: true, picturePath: true, latitude: true, longitude: true },
         },
       },
       orderBy: { expiresAt: 'asc' },

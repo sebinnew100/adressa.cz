@@ -3,23 +3,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { getOrCreateDeviceId } from '@/lib/gameDevice';
 
-interface Mission {
-  id: string;
-  rewardPoints: number;
-  isGrandChallenge: boolean;
-  expiresAt: string;
-  provider: {
-    id: string;
-    fullName: string;
-    serviceId: string;
-    cityId: string;
-    picturePath: string | null;
-  };
-}
+import type { Mission } from '@/types/game';
+
+const MissionMap = dynamic(() => import('@/components/game/MissionMap'), { ssr: false });
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return '00:00';
@@ -134,11 +125,22 @@ export default function GameModePage() {
           </p>
         </div>
 
+        {!loading && missions.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
+              🗺️ Herní mapa — České Budějovice
+            </h2>
+            <MissionMap missions={missions} now={now} onSelect={setSelected} />
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-16 text-gray-500">Načítám mise...</div>
         ) : missions.length === 0 ? (
           <div className="text-center py-16 text-gray-500">Žádné aktivní mise právě teď. Zkuste to později.</div>
         ) : (
+          <>
+          <h2 className="text-sm font-bold text-purple-300 mb-3">📋 Seznam misí</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {missions.map(mission => {
               const remaining = new Date(mission.expiresAt).getTime() - now;
@@ -184,6 +186,7 @@ export default function GameModePage() {
               );
             })}
           </div>
+          </>
         )}
       </main>
 

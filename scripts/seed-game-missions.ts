@@ -7,8 +7,10 @@ function hoursFromNow(hours: number): Date {
 }
 
 async function main() {
+  await prisma.gameMission.deleteMany({});
+
   const providers = await prisma.provider.findMany({
-    where: { active: true },
+    where: { active: true, cityId: 'ceske-budejovice', serviceId: 'restaurace' },
     take: 8,
     orderBy: { createdAt: 'desc' },
   });

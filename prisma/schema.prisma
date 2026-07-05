@@ -16,6 +16,8 @@ model Provider {
   serviceId   String
   cityId      String
   address     String?
+  latitude    Float?
+  longitude   Float?
   description String?
   picturePath String?
   featured    Boolean   @default(false)
