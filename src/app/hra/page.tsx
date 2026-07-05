@@ -201,7 +201,13 @@ export default function GameModePage() {
             </p>
             {selected.provider.latitude && selected.provider.longitude && (
               <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${selected.provider.latitude},${selected.provider.longitude}`}
+                href={
+                  selected.provider.address
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${selected.provider.fullName}, ${selected.provider.address}`
+                      )}`
+                    : `https://www.google.com/maps/search/?api=1&query=${selected.provider.latitude},${selected.provider.longitude}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mb-4 flex items-center justify-center gap-2 w-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-300 font-semibold py-2.5 rounded-lg transition-colors"

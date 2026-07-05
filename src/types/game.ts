@@ -9,6 +9,7 @@ export interface Mission {
     serviceId: string;
     cityId: string;
     picturePath: string | null;
+    address: string | null;
     latitude: number | null;
     longitude: number | null;
   };

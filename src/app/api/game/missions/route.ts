@@ -13,7 +13,7 @@ export async function GET() {
       },
       include: {
         provider: {
-          select: { id: true, fullName: true, serviceId: true, cityId: true, picturePath: true, latitude: true, longitude: true },
+          select: { id: true, fullName: true, serviceId: true, cityId: true, picturePath: true, address: true, latitude: true, longitude: true },
         },
       },
       orderBy: { expiresAt: 'asc' },
