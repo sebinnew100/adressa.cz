@@ -90,3 +90,18 @@
 .map-badge-pop {
   animation: map-badge-pop 2.4s ease-in-out infinite;
 }
+
+.map-pin-ping-ground {
+  border-radius: 9999px;
+  animation: map-pin-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes bldg-window-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.bldg-window {
+  animation: bldg-window-glow 1.6s ease-in-out infinite;
+  transform-origin: center;
+}
