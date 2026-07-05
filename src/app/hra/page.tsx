@@ -192,9 +192,16 @@ export default function GameModePage() {
 
       {/* Mission modal */}
       {selected && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-30" onClick={() => setSelected(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-1">{selected.provider.fullName}</h2>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[9999]" onClick={() => setSelected(null)}>
+          <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setSelected(null)}
+              aria-label="Zavřít"
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-lg leading-none transition-colors"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold mb-1 pr-8">{selected.provider.fullName}</h2>
             <p className="text-green-400 font-bold mb-4">+{selected.rewardPoints} bodů za splnění mise</p>
             <p className="text-gray-400 text-sm mb-4">
               Nakupte cokoli u tohoto poskytovatele a nahrajte fotku jako důkaz nákupu. Odeslání čeká na schválení adminem.
