@@ -15,19 +15,58 @@ function urgencyColor(ms: number): string {
   return '#2563eb';
 }
 
-function buildingSvg(color: string, isGrandChallenge: boolean): string {
-  const star = isGrandChallenge
-    ? `<path d="M20 0l1.8 4.6 4.9.4-3.7 3.2.9 4.8L20 10.6l-4 2.4.9-4.8-3.7-3.2 4.9-.4L20 0z" fill="#facc15"/>`
-    : '';
+function buildingSvg(color: string, isGrandChallenge: boolean, uid: string): string {
+  const wallGrad = `wallGrad-${uid}`;
+  const roofGrad = `roofGrad-${uid}`;
+
+  const topper = isGrandChallenge
+    ? `
+      <line x1="22" y1="1" x2="22" y2="9" stroke="#92400e" stroke-width="1.2"/>
+      <path d="M22 1.5 L30 4.5 L22 7.5 Z" fill="#facc15" stroke="#92400e" stroke-width="0.5"/>
+    `
+    : `<circle cx="22" cy="4.5" r="2.6" fill="#facc15" stroke="#92400e" stroke-width="0.6"/>`;
 
   return `
-    <svg width="100%" height="100%" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-      ${star}
-      <path d="M3 18 L20 5 L37 18 Z" fill="${color}"/>
-      <rect x="7" y="17" width="26" height="19" rx="2" fill="white" stroke="${color}" stroke-width="2"/>
-      <rect x="16" y="27" width="8" height="9" fill="${color}" opacity="0.9"/>
-      <rect class="bldg-window" x="10" y="21" width="5" height="5" rx="1" fill="#fde047"/>
-      <rect class="bldg-window" x="25" y="21" width="5" height="5" rx="1" fill="#fde047" style="animation-delay:0.7s"/>
+    <svg width="100%" height="100%" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${wallGrad}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="100%" stop-color="#dfe3e8"/>
+        </linearGradient>
+        <linearGradient id="${roofGrad}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.7"/>
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="22" cy="42" rx="15" ry="2.4" fill="rgba(0,0,0,0.2)"/>
+
+      ${topper}
+
+      <path d="M4 20 L22 6 L40 20 Z" fill="url(#${roofGrad})"/>
+      <rect x="6" y="19.5" width="32" height="2" rx="1" fill="rgba(0,0,0,0.15)"/>
+
+      <rect x="6" y="21.5" width="32" height="5" rx="1" fill="${color}"/>
+      <rect x="9" y="21.5" width="4" height="5" fill="white" opacity="0.4"/>
+      <rect x="17" y="21.5" width="4" height="5" fill="white" opacity="0.4"/>
+      <rect x="25" y="21.5" width="4" height="5" fill="white" opacity="0.4"/>
+      <rect x="33" y="21.5" width="4" height="5" fill="white" opacity="0.4"/>
+
+      <rect x="8" y="27" width="28" height="14" rx="1.5" fill="url(#${wallGrad})" stroke="${color}" stroke-width="1.5"/>
+
+      <g class="bldg-window">
+        <rect x="11" y="29.5" width="5.5" height="5.5" rx="0.8" fill="#fde68a" stroke="#92400e" stroke-width="0.6"/>
+        <line x1="13.75" y1="29.5" x2="13.75" y2="35" stroke="#92400e" stroke-width="0.5"/>
+        <line x1="11" y1="32.25" x2="16.5" y2="32.25" stroke="#92400e" stroke-width="0.5"/>
+      </g>
+      <g class="bldg-window" style="animation-delay:0.7s">
+        <rect x="27.5" y="29.5" width="5.5" height="5.5" rx="0.8" fill="#fde68a" stroke="#92400e" stroke-width="0.6"/>
+        <line x1="30.25" y1="29.5" x2="30.25" y2="35" stroke="#92400e" stroke-width="0.5"/>
+        <line x1="27.5" y1="32.25" x2="33" y2="32.25" stroke="#92400e" stroke-width="0.5"/>
+      </g>
+
+      <rect x="18.5" y="33" width="7" height="8" fill="${color}" opacity="0.9"/>
+      <circle cx="24" cy="37" r="0.5" fill="#fde68a"/>
     </svg>
   `;
 }
@@ -35,7 +74,7 @@ function buildingSvg(color: string, isGrandChallenge: boolean): string {
 function buildIcon(mission: Mission, now: number, animateIn: boolean) {
   const remaining = new Date(mission.expiresAt).getTime() - now;
   const color = urgencyColor(remaining);
-  const size = mission.isGrandChallenge ? 52 : 40;
+  const size = mission.isGrandChallenge ? 58 : 46;
   const entranceClass = animateIn ? 'map-pin-zoom-in' : '';
   const badgeBlock = 26;
   const totalHeight = size + badgeBlock;
@@ -56,7 +95,7 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
             box-shadow:0 2px 5px rgba(0,0,0,0.3);
             margin-bottom:4px;
           ">+${mission.rewardPoints}</div>
-          <div style="position:relative;width:${size}px;height:${size}px;cursor:pointer;">
+          <div style="position:relative;width:${size}px;height:${size}px;cursor:pointer;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.3));">
             <div class="map-pin-ping-ground" style="
               position:absolute;
               left:50%;
@@ -66,13 +105,13 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
               transform:translateX(-50%);
               background:${color};
             "></div>
-            ${buildingSvg(color, mission.isGrandChallenge)}
+            ${buildingSvg(color, mission.isGrandChallenge, mission.id)}
           </div>
         </div>
       </div>
     `,
     iconSize: [size, totalHeight],
-    iconAnchor: [size / 2, totalHeight - 6],
+    iconAnchor: [size / 2, totalHeight - 7],
   });
 }
 
