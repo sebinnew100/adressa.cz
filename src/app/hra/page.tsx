@@ -201,6 +201,11 @@ export default function GameModePage() {
             >
               ✕
             </button>
+            {selected.provider.picturePath && (
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 bg-gray-800">
+                <Image src={selected.provider.picturePath} alt={selected.provider.fullName} fill className="object-cover" />
+              </div>
+            )}
             <h2 className="text-xl font-bold mb-1 pr-8">{selected.provider.fullName}</h2>
             <p className="text-green-400 font-bold mb-4">+{selected.rewardPoints} bodů za splnění mise</p>
             <p className="text-gray-400 text-sm mb-4">
