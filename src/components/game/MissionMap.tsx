@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.heat';
 import type { Mission } from '@/types/game';
 
 const CB_CENTER: [number, number] = [48.9745, 14.4744];
@@ -14,16 +15,17 @@ function urgencyColor(ms: number): string {
   return '#2563eb';
 }
 
-function buildIcon(mission: Mission, now: number) {
+function buildIcon(mission: Mission, now: number, animateIn: boolean) {
   const remaining = new Date(mission.expiresAt).getTime() - now;
   const color = urgencyColor(remaining);
   const crown = mission.isGrandChallenge ? '👑' : '🎯';
   const size = mission.isGrandChallenge ? 46 : 36;
+  const entranceClass = animateIn ? 'map-pin-zoom-in' : '';
 
   return L.divIcon({
     className: '',
     html: `
-      <div style="position:relative;width:${size}px;height:${size}px;">
+      <div class="${entranceClass}" style="position:relative;width:${size}px;height:${size}px;">
         <div class="map-pin-ping" style="background:${color};"></div>
         <div style="
           position:relative;
@@ -49,7 +51,7 @@ function buildIcon(mission: Mission, now: number) {
 const USER_ICON = L.divIcon({
   className: '',
   html: `
-    <div style="position:relative;width:48px;height:48px;">
+    <div class="map-pin-zoom-in" style="position:relative;width:48px;height:48px;">
       <div class="map-pin-ping" style="background:#7c3aed;"></div>
       <div style="
         position:relative;
@@ -69,6 +71,59 @@ const USER_ICON = L.divIcon({
   iconSize: [48, 48],
   iconAnchor: [24, 24],
 });
+
+function useFreshIds(missions: Mission[]): Set<string> {
+  const seen = useRef<Set<string>>(new Set());
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const newlySeen = new Set<string>();
+    for (const m of missions) {
+      if (!seen.current.has(m.id)) {
+        newlySeen.add(m.id);
+        seen.current.add(m.id);
+      }
+    }
+    if (newlySeen.size === 0) return;
+    setFresh(newlySeen);
+    const timer = setTimeout(() => setFresh(new Set()), 700);
+    return () => clearTimeout(timer);
+  }, [missions]);
+
+  return fresh;
+}
+
+function HeatmapLayer({ missions, userPos }: { missions: Mission[]; userPos: [number, number] | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
+    const points: [number, number, number][] = withCoords.map(
+      m => [m.provider.latitude as number, m.provider.longitude as number, m.rewardPoints] as [number, number, number]
+    );
+    if (userPos) points.push([userPos[0], userPos[1], 60]);
+    if (points.length === 0) return;
+
+    const heatLayerFactory = (L as unknown as {
+      heatLayer: (pts: [number, number, number][], opts: Record<string, unknown>) => L.Layer;
+    }).heatLayer;
+
+    const heat = heatLayerFactory(points, {
+      radius: 45,
+      blur: 30,
+      maxZoom: 17,
+      max: 500,
+      minOpacity: 0.25,
+      gradient: { 0.2: '#60a5fa', 0.5: '#a855f7', 0.8: '#f97316', 1.0: '#ef4444' },
+    }).addTo(map);
+
+    return () => {
+      map.removeLayer(heat);
+    };
+  }, [missions, userPos, map]);
+
+  return null;
+}
 
 function FitToView({ missions, userPos }: { missions: Mission[]; userPos: [number, number] | null }) {
   const map = useMap();
@@ -193,6 +248,7 @@ export default function MissionMap({
 }) {
   const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
   const { pos: userPos, status: locationStatus, requestLocation } = useLiveLocation();
+  const freshIds = useFreshIds(missions);
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
@@ -202,12 +258,13 @@ export default function MissionMap({
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
+        <HeatmapLayer missions={missions} userPos={userPos} />
         <FitToView missions={missions} userPos={userPos} />
         {withCoords.map(mission => (
           <Marker
             key={mission.id}
             position={[mission.provider.latitude as number, mission.provider.longitude as number]}
-            icon={buildIcon(mission, now)}
+            icon={buildIcon(mission, now, freshIds.has(mission.id))}
             eventHandlers={{ click: () => onSelect(mission) }}
           />
         ))}
