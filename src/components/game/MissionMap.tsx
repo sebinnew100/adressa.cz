@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -46,19 +46,72 @@ function buildIcon(mission: Mission, now: number) {
   });
 }
 
-function FitToMarkers({ missions }: { missions: Mission[] }) {
+const USER_ICON = L.divIcon({
+  className: '',
+  html: `
+    <div style="position:relative;width:48px;height:48px;">
+      <div class="map-pin-ping" style="background:#7c3aed;"></div>
+      <div style="
+        position:relative;
+        background:white;
+        width:48px;
+        height:48px;
+        border-radius:50%;
+        border:3px solid #7c3aed;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:28px;
+        box-shadow:0 3px 10px rgba(0,0,0,0.35);
+      ">🐼</div>
+    </div>
+  `,
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
+});
+
+function FitToView({ missions, userPos }: { missions: Mission[]; userPos: [number, number] | null }) {
   const map = useMap();
+  const userInteracted = useRef(false);
 
   useEffect(() => {
+    const stop = () => { userInteracted.current = true; };
+    map.on('dragstart', stop);
+    map.on('zoomstart', stop);
+    return () => {
+      map.off('dragstart', stop);
+      map.off('zoomstart', stop);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (userInteracted.current) return;
     const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
-    if (withCoords.length === 0) return;
-    const bounds = L.latLngBounds(
-      withCoords.map(m => [m.provider.latitude as number, m.provider.longitude as number] as [number, number])
+    const points: [number, number][] = withCoords.map(
+      m => [m.provider.latitude as number, m.provider.longitude as number] as [number, number]
     );
-    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16 });
-  }, [missions, map]);
+    if (userPos) points.push(userPos);
+    if (points.length === 0) return;
+    map.fitBounds(L.latLngBounds(points), { padding: [56, 56], maxZoom: 16 });
+  }, [missions, userPos, map]);
 
   return null;
+}
+
+function useLiveLocation(): [number, number] | null {
+  const [pos, setPos] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      p => setPos([p.coords.latitude, p.coords.longitude]),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  return pos;
 }
 
 export default function MissionMap({
@@ -71,6 +124,7 @@ export default function MissionMap({
   onSelect: (mission: Mission) => void;
 }) {
   const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
+  const userPos = useLiveLocation();
 
   return (
     <div className="rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
@@ -79,7 +133,7 @@ export default function MissionMap({
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
-        <FitToMarkers missions={missions} />
+        <FitToView missions={missions} userPos={userPos} />
         {withCoords.map(mission => (
           <Marker
             key={mission.id}
@@ -88,6 +142,7 @@ export default function MissionMap({
             eventHandlers={{ click: () => onSelect(mission) }}
           />
         ))}
+        {userPos && <Marker position={userPos} icon={USER_ICON} zIndexOffset={1000} />}
       </MapContainer>
     </div>
   );
