@@ -98,18 +98,28 @@ function FitToView({ missions, userPos }: { missions: Mission[]; userPos: [numbe
   return null;
 }
 
-type LocationStatus = 'pending' | 'success' | 'denied' | 'unsupported' | 'error';
+type LocationStatus = 'idle' | 'pending' | 'success' | 'denied' | 'unsupported' | 'error';
 
-function useLiveLocation(): { pos: [number, number] | null; status: LocationStatus } {
+function useLiveLocation() {
   const [pos, setPos] = useState<[number, number] | null>(null);
-  const [status, setStatus] = useState<LocationStatus>('pending');
+  const [status, setStatus] = useState<LocationStatus>('idle');
+  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  const requestLocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setStatus('unsupported');
       return;
     }
-    const watchId = navigator.geolocation.watchPosition(
+    setStatus('pending');
+    watchIdRef.current = navigator.geolocation.watchPosition(
       p => {
         setPos([p.coords.latitude, p.coords.longitude]);
         setStatus('success');
@@ -119,25 +129,55 @@ function useLiveLocation(): { pos: [number, number] | null; status: LocationStat
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  };
 
-  return { pos, status };
+  return { pos, status, requestLocation };
 }
 
-function LocationBanner({ status }: { status: LocationStatus }) {
+function LocationPrompt({ status, onRequest }: { status: LocationStatus; onRequest: () => void }) {
   if (status === 'success') return null;
 
-  const messages: Record<Exclude<LocationStatus, 'success'>, string> = {
-    pending: '📍 Hledám vaši polohu…',
-    denied: '📍 Přístup k poloze byl zamítnut — povolte ho v nastavení prohlížeče, aby se zobrazila vaše panda.',
-    unsupported: '📍 Váš prohlížeč nepodporuje sdílení polohy.',
-    error: '📍 Polohu se nepodařilo zjistit. Zkontrolujte, že má prohlížeč/zařízení povolené služby polohy.',
+  if (status === 'idle') {
+    return (
+      <div className="absolute top-3 left-3 z-[1000] bg-gray-900/95 text-white text-xs px-4 py-3 rounded-xl shadow-lg max-w-xs">
+        <p className="font-semibold mb-2">🐼 Chcete vidět svou polohu na mapě?</p>
+        <button
+          onClick={onRequest}
+          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors"
+        >
+          Povolit polohu
+        </button>
+      </div>
+    );
+  }
+
+  if (status === 'pending') {
+    return (
+      <div className="absolute top-3 left-3 z-[1000] bg-gray-900/90 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg max-w-xs">
+        📍 Hledám vaši polohu… Potvrďte prosím povolení v prohlížeči.
+      </div>
+    );
+  }
+
+  const messages: Record<'denied' | 'unsupported' | 'error', string> = {
+    denied:
+      'Přístup k poloze byl zamítnut. Klikněte na ikonu zámku/informace vedle adresy stránky a povolte tam polohu ručně, poté zkuste znovu.',
+    unsupported: 'Váš prohlížeč nepodporuje sdílení polohy.',
+    error:
+      'Polohu se nepodařilo zjistit. Zkontrolujte, že jsou zapnuté služby polohy v nastavení vašeho zařízení (Windows/telefon), poté zkuste znovu.',
   };
 
   return (
-    <div className="absolute top-3 left-3 z-[1000] bg-gray-900/90 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg max-w-xs">
-      {messages[status]}
+    <div className="absolute top-3 left-3 z-[1000] bg-gray-900/95 text-white text-xs px-4 py-3 rounded-xl shadow-lg max-w-xs">
+      <p className="mb-2">📍 {messages[status as 'denied' | 'unsupported' | 'error']}</p>
+      {status !== 'unsupported' && (
+        <button
+          onClick={onRequest}
+          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3 py-2 rounded-lg transition-colors"
+        >
+          Zkusit znovu
+        </button>
+      )}
     </div>
   );
 }
@@ -152,11 +192,11 @@ export default function MissionMap({
   onSelect: (mission: Mission) => void;
 }) {
   const withCoords = missions.filter(m => m.provider.latitude && m.provider.longitude);
-  const { pos: userPos, status: locationStatus } = useLiveLocation();
+  const { pos: userPos, status: locationStatus, requestLocation } = useLiveLocation();
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
-      <LocationBanner status={locationStatus} />
+      <LocationPrompt status={locationStatus} onRequest={requestLocation} />
       <MapContainer center={CB_CENTER} zoom={14} style={{ height: '100%', width: '100%', background: '#f1f3f4' }}>
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
