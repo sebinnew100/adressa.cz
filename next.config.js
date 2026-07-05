@@ -9,8 +9,8 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // Don't leak full URL to third-party sites
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // Disable browser features that aren't needed
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
+  // Disable browser features that aren't needed (geolocation is allowed for Game Mode's location marker)
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), browsing-topics=()' },
   // Legacy XSS filter for older browsers
   { key: 'X-XSS-Protection', value: '1; mode=block' },
 ];
