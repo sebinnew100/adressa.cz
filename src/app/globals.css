@@ -72,3 +72,21 @@
 .map-pin-zoom-in {
   animation: map-pin-zoom-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+@keyframes map-pin-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.map-pin-bob {
+  animation: map-pin-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes map-badge-pop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.05); }
+}
+
+.map-badge-pop {
+  animation: map-badge-pop 2.4s ease-in-out infinite;
+}

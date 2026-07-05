@@ -35,50 +35,69 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
   const iconSvg = mission.isGrandChallenge ? CROWN_SVG : FORK_KNIFE_SVG;
   const size = mission.isGrandChallenge ? 46 : 36;
   const entranceClass = animateIn ? 'map-pin-zoom-in' : '';
+  const badgeBlock = 26;
+  const totalHeight = size + badgeBlock;
 
   return L.divIcon({
     className: '',
     html: `
-      <div class="${entranceClass}" style="position:relative;width:${size}px;height:${size}px;">
-        <div class="map-pin-ping" style="background:${color};"></div>
-        <div style="
-          position:relative;
-          background:${color};
-          width:${size}px;
-          height:${size}px;
-          border-radius:50%;
-          border:3px solid white;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          box-shadow:0 3px 10px rgba(0,0,0,0.35);
-          cursor:pointer;
-        ">${iconSvg}</div>
+      <div class="${entranceClass}" style="width:${size}px;height:${totalHeight}px;">
+        <div class="map-pin-bob" style="display:flex;flex-direction:column;align-items:center;">
+          <div class="map-badge-pop" style="
+            background:#facc15;
+            color:#1f2937;
+            font-size:10px;
+            font-weight:800;
+            padding:2px 7px;
+            border-radius:9999px;
+            white-space:nowrap;
+            box-shadow:0 2px 5px rgba(0,0,0,0.3);
+            margin-bottom:4px;
+          ">+${mission.rewardPoints}</div>
+          <div style="position:relative;width:${size}px;height:${size}px;">
+            <div class="map-pin-ping" style="background:${color};"></div>
+            <div style="
+              position:relative;
+              background:${color};
+              width:${size}px;
+              height:${size}px;
+              border-radius:50%;
+              border:3px solid white;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              box-shadow:0 3px 10px rgba(0,0,0,0.35);
+              cursor:pointer;
+            ">${iconSvg}</div>
+          </div>
+        </div>
       </div>
     `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize: [size, totalHeight],
+    iconAnchor: [size / 2, totalHeight - size / 2],
   });
 }
 
 const USER_ICON = L.divIcon({
   className: '',
   html: `
-    <div class="map-pin-zoom-in" style="position:relative;width:48px;height:48px;">
-      <div class="map-pin-ping" style="background:#7c3aed;"></div>
-      <div style="
-        position:relative;
-        background:white;
-        width:48px;
-        height:48px;
-        border-radius:50%;
-        border:3px solid #7c3aed;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:28px;
-        box-shadow:0 3px 10px rgba(0,0,0,0.35);
-      ">🐼</div>
+    <div class="map-pin-zoom-in" style="width:48px;height:48px;">
+      <div class="map-pin-bob" style="position:relative;width:48px;height:48px;">
+        <div class="map-pin-ping" style="background:#7c3aed;"></div>
+        <div style="
+          position:relative;
+          background:white;
+          width:48px;
+          height:48px;
+          border-radius:50%;
+          border:3px solid #7c3aed;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:28px;
+          box-shadow:0 3px 10px rgba(0,0,0,0.35);
+        ">🐼</div>
+      </div>
     </div>
   `,
   iconSize: [48, 48],
@@ -264,25 +283,27 @@ export default function MissionMap({
   const freshIds = useFreshIds(missions);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
-      <LocationPrompt status={locationStatus} onRequest={requestLocation} />
-      <MapContainer center={CB_CENTER} zoom={14} style={{ height: '100%', width: '100%', background: '#f1f3f4' }}>
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
-        <HeatmapLayer missions={missions} userPos={userPos} />
-        <FitToView missions={missions} userPos={userPos} />
-        {withCoords.map(mission => (
-          <Marker
-            key={mission.id}
-            position={[mission.provider.latitude as number, mission.provider.longitude as number]}
-            icon={buildIcon(mission, now, freshIds.has(mission.id))}
-            eventHandlers={{ click: () => onSelect(mission) }}
+    <div className="relative rounded-2xl game-glow-header p-[3px]">
+      <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
+        <LocationPrompt status={locationStatus} onRequest={requestLocation} />
+        <MapContainer center={CB_CENTER} zoom={14} style={{ height: '100%', width: '100%', background: '#f1f3f4' }}>
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
-        ))}
-        {userPos && <Marker position={userPos} icon={USER_ICON} zIndexOffset={1000} />}
-      </MapContainer>
+          <HeatmapLayer missions={missions} userPos={userPos} />
+          <FitToView missions={missions} userPos={userPos} />
+          {withCoords.map(mission => (
+            <Marker
+              key={mission.id}
+              position={[mission.provider.latitude as number, mission.provider.longitude as number]}
+              icon={buildIcon(mission, now, freshIds.has(mission.id))}
+              eventHandlers={{ click: () => onSelect(mission) }}
+            />
+          ))}
+          {userPos && <Marker position={userPos} icon={USER_ICON} zIndexOffset={1000} />}
+        </MapContainer>
+      </div>
     </div>
   );
 }
