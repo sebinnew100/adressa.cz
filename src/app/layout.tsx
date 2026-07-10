@@ -38,6 +38,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="cs" className={inter.variable}>
       <body>
         <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5770800340894128"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+        <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-BNF8NTBG6T"
           strategy="afterInteractive"
         />
