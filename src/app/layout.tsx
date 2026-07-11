@@ -30,6 +30,7 @@ export const metadata: Metadata = {
   },
   other: {
     monetag: '8ebc365aff2bd853853de756c188a822',
+    'seznam-wmt': 'v6toM7Oc6C5oRA9UhMKfdDn36efY6dom',
   },
 };
 
