@@ -72,6 +72,57 @@ function buildingSvg(color: string, isGrandChallenge: boolean, uid: string): str
   `;
 }
 
+function supermarketSvg(color: string, isGrandChallenge: boolean, uid: string): string {
+  const wallGrad = `smWallGrad-${uid}`;
+  const roofGrad = `smRoofGrad-${uid}`;
+
+  const topper = isGrandChallenge
+    ? `
+      <line x1="22" y1="1" x2="22" y2="8" stroke="#92400e" stroke-width="1.2"/>
+      <path d="M22 1.5 L30 4.5 L22 7.5 Z" fill="#facc15" stroke="#92400e" stroke-width="0.5"/>
+    `
+    : `<text x="22" y="10" font-size="9" text-anchor="middle">🛒</text>`;
+
+  return `
+    <svg width="100%" height="100%" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${wallGrad}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="100%" stop-color="#dfe3e8"/>
+        </linearGradient>
+        <linearGradient id="${roofGrad}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.7"/>
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="22" cy="42" rx="17" ry="2.4" fill="rgba(0,0,0,0.2)"/>
+
+      ${topper}
+
+      <rect x="4" y="12" width="36" height="6" rx="1" fill="url(#${roofGrad})"/>
+
+      <rect x="4" y="18" width="36" height="4" fill="${color}"/>
+      <rect x="7" y="18" width="4" height="4" fill="white" opacity="0.5"/>
+      <rect x="15" y="18" width="4" height="4" fill="white" opacity="0.5"/>
+      <rect x="23" y="18" width="4" height="4" fill="white" opacity="0.5"/>
+      <rect x="31" y="18" width="4" height="4" fill="white" opacity="0.5"/>
+
+      <rect x="5" y="22" width="34" height="19" rx="1.5" fill="url(#${wallGrad})" stroke="${color}" stroke-width="1.5"/>
+
+      <g class="bldg-window">
+        <rect x="8" y="25" width="11" height="10" rx="0.8" fill="#bae6fd" stroke="#0369a1" stroke-width="0.6"/>
+      </g>
+      <g class="bldg-window" style="animation-delay:0.7s">
+        <rect x="25" y="25" width="11" height="10" rx="0.8" fill="#bae6fd" stroke="#0369a1" stroke-width="0.6"/>
+      </g>
+
+      <rect x="19.5" y="31" width="5" height="10" fill="${color}" opacity="0.9"/>
+      <circle cx="23.5" cy="36" r="0.5" fill="#fde68a"/>
+    </svg>
+  `;
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -116,7 +167,9 @@ function buildIcon(mission: Mission, now: number, animateIn: boolean) {
               transform:translateX(-50%);
               background:${color};
             "></div>
-            ${buildingSvg(color, mission.isGrandChallenge, mission.id)}
+            ${mission.provider.serviceId === 'supermarket'
+              ? supermarketSvg(color, mission.isGrandChallenge, mission.id)
+              : buildingSvg(color, mission.isGrandChallenge, mission.id)}
           </div>
           <div style="
             margin-top:2px;
