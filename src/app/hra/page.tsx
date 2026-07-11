@@ -8,6 +8,7 @@ import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { getOrCreateDeviceId, getNickname, setNickname, hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
 import { TourOverlay, type TourStep } from '@/components/game/TourOverlay';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 import type { Mission } from '@/types/game';
 
@@ -19,47 +20,17 @@ interface LeaderboardEntry {
 
 const MissionMap = dynamic(() => import('@/components/game/MissionMap'), { ssr: false });
 
-const GAME_CITIES = [
-  { id: 'ceske-budejovice', nameCz: 'České Budějovice' },
-  { id: 'praha', nameCz: 'Praha' },
-] as const;
+const GAME_CITIES = ['ceske-budejovice', 'praha'] as const;
 
 const PRE_MODAL_STEP_COUNT = 3;
 
-const TOUR_STEPS: TourStep[] = [
-  {
-    targetId: 'tour-city-tabs',
-    title: 'Vyberte město',
-    body: 'Tady si vyberete, ve kterém městě chcete hrát — zkuste přepnout záložku.',
-    advanceOnTargetClick: true,
-  },
-  {
-    targetId: 'tour-map',
-    title: 'Mapa misí',
-    body: 'Restaurace s aktivními misemi se zobrazují jako body na mapě. Klikněte na kterýkoli z nich.',
-    advanceOnTargetClick: true,
-  },
-  {
-    targetId: 'tour-mission-card',
-    title: 'Nebo vyberte ze seznamu',
-    body: 'Misi můžete otevřít i kliknutím na kartu tady dole — zkuste to teď.',
-    advanceOnTargetClick: true,
-  },
-  {
-    targetId: 'tour-photo-input',
-    title: 'Nahrajte fotku',
-    body: 'Navštivte místo, něco si kupte a tady nahrajte fotku účtenky nebo produktu jako důkaz.',
-  },
-  {
-    targetId: 'tour-submit-btn',
-    title: 'Odešlete ke schválení',
-    body: 'Klikněte zde a odešlete misi. Admin ji ručně zkontroluje.',
-  },
-  {
-    targetId: 'tour-points-badge',
-    title: 'Získejte odměnu',
-    body: 'Po schválení se vám tady připíšou body. 1000 bodů = 200 Kč, vyplaceno ručně.',
-  },
+const TOUR_TARGETS: { targetId: string; advanceOnTargetClick?: boolean }[] = [
+  { targetId: 'tour-city-tabs', advanceOnTargetClick: true },
+  { targetId: 'tour-map', advanceOnTargetClick: true },
+  { targetId: 'tour-mission-card', advanceOnTargetClick: true },
+  { targetId: 'tour-photo-input' },
+  { targetId: 'tour-submit-btn' },
+  { targetId: 'tour-points-badge' },
 ];
 
 function formatRemaining(ms: number): string {
@@ -79,6 +50,13 @@ function urgencyClass(ms: number): string {
 }
 
 export default function GameModePage() {
+  const { language, t, setLanguage } = useLanguage();
+  const TOUR_STEPS: TourStep[] = TOUR_TARGETS.map((target, i) => ({
+    ...target,
+    title: t.game.tour.steps[i].title,
+    body: t.game.tour.steps[i].body,
+  }));
+
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -91,7 +69,7 @@ export default function GameModePage() {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [city, setCity] = useState<typeof GAME_CITIES[number]['id']>('ceske-budejovice');
+  const [city, setCity] = useState<typeof GAME_CITIES[number]>('ceske-budejovice');
   const [tourActive, setTourActive] = useState(false);
   const [tourStep, setTourStep] = useState(0);
 
@@ -223,10 +201,10 @@ export default function GameModePage() {
 
     const res = await fetch('/api/game/submit', { method: 'POST', body: formData });
     if (res.ok) {
-      setSubmitMessage('✅ Odesláno! Čeká na schválení adminem.');
+      setSubmitMessage(t.game.modal.success);
       setTimeout(() => { setSelected(null); setSubmitMessage(''); }, 2000);
     } else {
-      setSubmitMessage('❌ Nepodařilo se odeslat. Zkuste to znovu.');
+      setSubmitMessage(t.game.modal.error);
     }
     setUploading(false);
   };
@@ -240,20 +218,34 @@ export default function GameModePage() {
             <span className="text-brand">adressa</span>.cz
           </span>
           <span className="text-gray-600">|</span>
-          <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 GAME MODE</span>
+          <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 {t.game.gameMode}</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center rounded-full border border-gray-700 overflow-hidden text-xs font-bold">
+            <button
+              onClick={() => setLanguage('cs')}
+              className={`px-2.5 py-1.5 transition-colors ${language === 'cs' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+            >
+              CS
+            </button>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-2.5 py-1.5 transition-colors ${language === 'en' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+            >
+              EN
+            </button>
+          </div>
           <button
             onClick={() => { setTourStep(0); setTourActive(true); }}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-semibold px-3 py-1.5 rounded-full transition-colors"
           >
-            ❓ Jak hrát
+            {t.game.howToPlay}
           </button>
           <span id="tour-points-badge" className="bg-yellow-500/10 text-yellow-400 font-bold px-3 py-1.5 rounded-full">
-            💰 {totalPoints} bodů
+            💰 {t.game.points(totalPoints)}
           </span>
           <span className="bg-purple-500/10 text-purple-300 font-bold px-3 py-1.5 rounded-full">
-            ⭐ Lv. {level}
+            ⭐ {t.game.level(level)}
           </span>
           {editingNickname ? (
             <div className="flex items-center gap-1">
@@ -262,7 +254,7 @@ export default function GameModePage() {
                 value={nicknameDraft}
                 onChange={e => setNicknameDraft(e.target.value.slice(0, 20))}
                 onKeyDown={e => { if (e.key === 'Enter') saveNickname(); }}
-                placeholder="Přezdívka"
+                placeholder={t.game.nicknamePlaceholder}
                 className="w-28 bg-gray-800 border border-gray-700 rounded-full px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
               />
               <button
@@ -277,14 +269,14 @@ export default function GameModePage() {
               onClick={() => { setNicknameDraft(nickname); setEditingNickname(true); }}
               className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors text-xs"
             >
-              🏷️ {nickname || 'Nastavit přezdívku'}
+              🏷️ {nickname || t.game.setNickname}
             </button>
           )}
           <Link
             href="/"
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors"
           >
-            ↩ Zpět na web
+            {t.game.backToSite}
           </Link>
         </div>
       </header>
@@ -292,20 +284,20 @@ export default function GameModePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-700/50 rounded-2xl p-6 mb-8 text-center">
           <p className="text-gray-300 text-sm">
-            Navštivte podniky, splňte misi a nahrajte fotku jako důkaz. Po schválení adminem získáte body — 1000 bodů = 200 Kč.
+            {t.game.bannerText}
           </p>
         </div>
 
         {leaderboard.length > 0 && (
           <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
             <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
-              🏆 Žebříček hráčů
+              {t.game.leaderboardTitle}
             </h2>
             <div className="space-y-1.5">
               {leaderboard.map((entry, i) => {
                 const isMe = entry.deviceId === deviceId;
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-                const displayName = entry.nickname || `Hráč #${entry.deviceId.slice(-4).toUpperCase()}`;
+                const displayName = entry.nickname || t.game.playerFallback(entry.deviceId.slice(-4).toUpperCase());
                 return (
                   <div
                     key={entry.deviceId}
@@ -316,10 +308,10 @@ export default function GameModePage() {
                     <span className="flex items-center gap-2">
                       <span className="w-6 text-center font-bold">{medal}</span>
                       <span className={isMe ? 'font-bold text-purple-300' : 'text-gray-300'}>
-                        {displayName}{isMe ? ' (vy)' : ''}
+                        {displayName}{isMe ? ` ${t.game.you}` : ''}
                       </span>
                     </span>
-                    <span className="font-bold text-yellow-400">{entry.points} b.</span>
+                    <span className="font-bold text-yellow-400">{t.game.points(entry.points)}</span>
                   </div>
                 );
               })}
@@ -328,15 +320,15 @@ export default function GameModePage() {
         )}
 
         <div id="tour-city-tabs" className="mb-6 flex gap-2">
-          {GAME_CITIES.map(c => (
+          {GAME_CITIES.map(cityId => (
             <button
-              key={c.id}
-              onClick={() => setCity(c.id)}
+              key={cityId}
+              onClick={() => setCity(cityId)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                city === c.id ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                city === cityId ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
               }`}
             >
-              {c.nameCz}
+              {t.game.cities[cityId]}
             </button>
           ))}
         </div>
@@ -344,19 +336,19 @@ export default function GameModePage() {
         {!loading && missions.length > 0 && (
           <div id="tour-map" className="mb-8">
             <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
-              🗺️ Herní mapa — {GAME_CITIES.find(c => c.id === city)?.nameCz}
+              {t.game.mapTitle(t.game.cities[city])}
             </h2>
             <MissionMap key={city} missions={missions} now={now} onSelect={setSelected} />
           </div>
         )}
 
         {loading ? (
-          <div className="text-center py-16 text-gray-500">Načítám mise...</div>
+          <div className="text-center py-16 text-gray-500">{t.game.loadingMissions}</div>
         ) : missions.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">Žádné aktivní mise právě teď. Zkuste to později.</div>
+          <div className="text-center py-16 text-gray-500">{t.game.noMissions}</div>
         ) : (
           <>
-          <h2 className="text-sm font-bold text-purple-300 mb-3">📋 Seznam misí</h2>
+          <h2 className="text-sm font-bold text-purple-300 mb-3">{t.game.missionListTitle}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {missions.map((mission, i) => {
               const remaining = new Date(mission.expiresAt).getTime() - now;
@@ -382,7 +374,7 @@ export default function GameModePage() {
                     )}
                     {mission.isGrandChallenge && (
                       <span className="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full">
-                        👑 GRAND CHALLENGE
+                        {t.game.grandChallenge}
                       </span>
                     )}
                     <span className={`absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded-full ${urgencyClass(remaining)}`}>
@@ -396,7 +388,7 @@ export default function GameModePage() {
                       {city ? ` · ${city.nameCz}` : ''}
                     </div>
                     <div className="mt-3 text-green-400 font-bold text-sm">
-                      +{mission.rewardPoints} bodů
+                      {t.game.rewardPoints(mission.rewardPoints)}
                     </div>
                   </div>
                 </button>
@@ -413,7 +405,7 @@ export default function GameModePage() {
           <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setSelected(null)}
-              aria-label="Zavřít"
+              aria-label={t.game.modal.close}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-lg leading-none transition-colors"
             >
               ✕
@@ -424,9 +416,9 @@ export default function GameModePage() {
               </div>
             )}
             <h2 className="text-xl font-bold mb-1 pr-8">{selected.provider.fullName}</h2>
-            <p className="text-green-400 font-bold mb-4">+{selected.rewardPoints} bodů za splnění mise</p>
+            <p className="text-green-400 font-bold mb-4">{t.game.modal.rewardLine(selected.rewardPoints)}</p>
             <p className="text-gray-400 text-sm mb-4">
-              Nakupte cokoli u tohoto poskytovatele a nahrajte fotku jako důkaz nákupu. Odeslání čeká na schválení adminem.
+              {t.game.modal.instructions}
             </p>
             {selected.provider.latitude && selected.provider.longitude && (
               <a
@@ -441,7 +433,7 @@ export default function GameModePage() {
                 rel="noopener noreferrer"
                 className="mb-4 flex items-center justify-center gap-2 w-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-300 font-semibold py-2.5 rounded-lg transition-colors"
               >
-                🧭 Navigovat na místo
+                {t.game.modal.navigate}
               </a>
             )}
             {submitMessage ? (
@@ -456,14 +448,14 @@ export default function GameModePage() {
                     disabled={uploading}
                     className="flex-1 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
                   >
-                    {uploading ? 'Odesílám...' : 'Odeslat důkaz'}
+                    {uploading ? t.game.modal.submitting : t.game.modal.submit}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelected(null)}
                     className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
                   >
-                    Zrušit
+                    {t.game.modal.cancel}
                   </button>
                 </div>
               </form>

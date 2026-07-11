@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface TourStep {
   targetId: string | null;
@@ -60,6 +61,7 @@ export function TourOverlay({
   onBack: () => void;
   onSkip: () => void;
 }) {
+  const { t } = useLanguage();
   const rect = useTargetRect(step.targetId);
   const isLast = stepIndex === totalSteps - 1;
   const hasTarget = !!step.targetId;
@@ -127,16 +129,16 @@ export function TourOverlay({
         className="bg-gray-900 border border-purple-700/50 rounded-2xl p-5 shadow-2xl"
       >
         <p className="text-purple-400 font-bold text-xs tracking-wide mb-2">
-          KROK {stepIndex + 1} Z {totalSteps}
+          {t.game.tour.stepLabel(stepIndex + 1, totalSteps)}
         </p>
         <h3 className="text-white font-bold mb-1.5">{step.title}</h3>
         <p className="text-gray-400 text-sm leading-relaxed mb-4">{step.body}</p>
         {hasTarget && targetFound && step.advanceOnTargetClick && (
-          <p className="text-purple-300 text-xs font-semibold mb-3">👆 Zkuste na to kliknout</p>
+          <p className="text-purple-300 text-xs font-semibold mb-3">{t.game.tour.tryClick}</p>
         )}
         <div className="flex items-center justify-between gap-2">
           <button onClick={onSkip} className="text-gray-500 hover:text-gray-300 text-xs font-medium transition-colors">
-            Přeskočit
+            {t.game.tour.skip}
           </button>
           <div className="flex gap-2">
             {stepIndex > 0 && (
@@ -144,14 +146,14 @@ export function TourOverlay({
                 onClick={onBack}
                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-semibold transition-colors"
               >
-                ‹ Zpět
+                {t.game.tour.back}
               </button>
             )}
             <button
               onClick={onNext}
               className="px-3 py-1.5 bg-brand hover:bg-brand-hover text-white rounded-lg text-xs font-bold transition-colors"
             >
-              {isLast ? 'Dokončit ✓' : 'Další →'}
+              {isLast ? t.game.tour.finish : t.game.tour.next}
             </button>
           </div>
         </div>
