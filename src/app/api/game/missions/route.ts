@@ -1,15 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const city = request.nextUrl.searchParams.get('city') || 'ceske-budejovice';
+
   try {
     const missions = await prisma.gameMission.findMany({
       where: {
         active: true,
         expiresAt: { gt: new Date() },
-        provider: { cityId: 'ceske-budejovice', serviceId: 'restaurace' },
+        provider: { cityId: city, serviceId: 'restaurace' },
       },
       include: {
         provider: {

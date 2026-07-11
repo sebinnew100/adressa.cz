@@ -18,6 +18,11 @@ interface LeaderboardEntry {
 
 const MissionMap = dynamic(() => import('@/components/game/MissionMap'), { ssr: false });
 
+const GAME_CITIES = [
+  { id: 'ceske-budejovice', nameCz: 'České Budějovice' },
+  { id: 'praha', nameCz: 'Praha' },
+] as const;
+
 function formatRemaining(ms: number): string {
   if (ms <= 0) return '00:00';
   const totalSeconds = Math.floor(ms / 1000);
@@ -47,9 +52,11 @@ export default function GameModePage() {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [city, setCity] = useState<typeof GAME_CITIES[number]['id']>('ceske-budejovice');
 
-  const fetchMissions = useCallback(async () => {
-    const res = await fetch('/api/game/missions');
+  const fetchMissions = useCallback(async (cityId: string) => {
+    setLoading(true);
+    const res = await fetch(`/api/game/missions?city=${cityId}`);
     const data = await res.json();
     if (Array.isArray(data)) setMissions(data);
     setLoading(false);
@@ -78,22 +85,25 @@ export default function GameModePage() {
     const id = getOrCreateDeviceId();
     setDeviceId(id);
     setNicknameState(getNickname());
-    fetchMissions();
     fetchStatus(id);
     fetchLeaderboard();
 
-    const tickTimer = setInterval(() => setNow(Date.now()), 1000);
-    const missionsTimer = setInterval(fetchMissions, 30000);
     const statusTimer = setInterval(() => fetchStatus(id), 15000);
     const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
+    const tickTimer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => {
       clearInterval(tickTimer);
-      clearInterval(missionsTimer);
       clearInterval(statusTimer);
       clearInterval(leaderboardTimer);
     };
-  }, [fetchMissions, fetchStatus, fetchLeaderboard]);
+  }, [fetchStatus, fetchLeaderboard]);
+
+  useEffect(() => {
+    fetchMissions(city);
+    const missionsTimer = setInterval(() => fetchMissions(city), 30000);
+    return () => clearInterval(missionsTimer);
+  }, [city, fetchMissions]);
 
   const level = Math.floor(totalPoints / 200) + 1;
 
@@ -208,12 +218,26 @@ export default function GameModePage() {
           </div>
         )}
 
+        <div className="mb-6 flex gap-2">
+          {GAME_CITIES.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCity(c.id)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                city === c.id ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+              }`}
+            >
+              {c.nameCz}
+            </button>
+          ))}
+        </div>
+
         {!loading && missions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
-              🗺️ Herní mapa — České Budějovice
+              🗺️ Herní mapa — {GAME_CITIES.find(c => c.id === city)?.nameCz}
             </h2>
-            <MissionMap missions={missions} now={now} onSelect={setSelected} />
+            <MissionMap key={city} missions={missions} now={now} onSelect={setSelected} />
           </div>
         )}
 
