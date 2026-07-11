@@ -88,6 +88,7 @@ export const en: Translations = {
     successBrowse: 'Browse all profiles',
     error: 'Something went wrong. Please try again.',
     errorEmail: 'This email is already registered.',
+    paymentUnavailable: 'Your profile was saved, but payment setup is temporarily unavailable. We\'ll be in touch once activation can be completed.',
     placeholders: {
       fullName: 'Jan Novák',
       email: 'jan.novak@email.cz',

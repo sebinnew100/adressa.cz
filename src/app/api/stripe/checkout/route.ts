@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, PRICE_CZK } from '@/lib/stripe';
+import { getStripe, MONTHLY_PRICE_CZK, TRIAL_DAYS } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -22,16 +22,21 @@ export async function POST(request: NextRequest) {
         {
           price_data: {
             currency: 'czk',
-            unit_amount: PRICE_CZK,
+            unit_amount: MONTHLY_PRICE_CZK,
+            recurring: { interval: 'month' },
             product_data: {
-              name: 'adressa.cz — Inzerce profilu (30 dní)',
+              name: 'adressa.cz — Měsíční inzerce profilu',
               description: `Profil: ${provider.fullName}`,
             },
           },
           quantity: 1,
         },
       ],
-      mode: 'payment',
+      mode: 'subscription',
+      subscription_data: {
+        trial_period_days: TRIAL_DAYS,
+        metadata: { providerId },
+      },
       metadata: { providerId },
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancel?providerId=${providerId}`,

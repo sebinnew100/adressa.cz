@@ -1,28 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, LISTING_DAYS } from '@/lib/stripe';
+import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const sig = request.headers.get('stripe-signature') ?? '';
 
-  let event;
+  let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const providerId = session.metadata?.providerId;
-    if (providerId) {
-      const paidUntil = new Date();
-      paidUntil.setDate(paidUntil.getDate() + LISTING_DAYS);
-      await prisma.provider.update({
-        where: { id: providerId },
-        data: { active: true, paidUntil },
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const providerId = session.metadata?.providerId;
+      if (providerId && session.subscription && session.customer) {
+        await prisma.provider.update({
+          where: { id: providerId },
+          data: {
+            active: true,
+            subscriptionStatus: 'trialing',
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: session.subscription as string,
+          },
+        });
+      }
+      break;
+    }
+
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subDetails = invoice.parent?.subscription_details;
+      const subscriptionId = (typeof subDetails?.subscription === 'string' ? subDetails.subscription : subDetails?.subscription?.id) ?? null;
+      if (subscriptionId) {
+        const periodEndUnix = invoice.lines.data[0]?.period?.end;
+        const paidUntil = periodEndUnix ? new Date(periodEndUnix * 1000) : undefined;
+        await prisma.provider.updateMany({
+          where: { stripeSubscriptionId: subscriptionId },
+          data: {
+            active: true,
+            subscriptionStatus: 'active',
+            ...(paidUntil && { paidUntil }),
+          },
+        });
+      }
+      break;
+    }
+
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subDetails = invoice.parent?.subscription_details;
+      const subscriptionId = (typeof subDetails?.subscription === 'string' ? subDetails.subscription : subDetails?.subscription?.id) ?? null;
+      if (subscriptionId) {
+        await prisma.provider.updateMany({
+          where: { stripeSubscriptionId: subscriptionId },
+          data: { subscriptionStatus: 'past_due' },
+        });
+      }
+      break;
+    }
+
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object as Stripe.Subscription;
+      await prisma.provider.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: {
+          subscriptionStatus: subscription.status,
+          active: ['trialing', 'active'].includes(subscription.status),
+        },
       });
+      break;
+    }
+
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object as Stripe.Subscription;
+      await prisma.provider.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: { active: false, subscriptionStatus: 'canceled' },
+      });
+      break;
     }
   }
 

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const provider = await prisma.provider.create({
-      data: { fullName, email, phone, serviceId, cityId, address, description, picturePath, active: true },
+      data: { fullName, email, phone, serviceId, cityId, address, description, picturePath, active: false },
     });
 
     return NextResponse.json(provider, { status: 201 });

@@ -11,5 +11,5 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export const PRICE_CZK = 1000; // 10.00 CZK in haléře
-export const LISTING_DAYS = 30;
+export const MONTHLY_PRICE_CZK = 9000; // 90.00 CZK in haléře
+export const TRIAL_DAYS = 7;

@@ -86,6 +86,7 @@ export const cs = {
     successBrowse: 'Zobrazit všechny profily',
     error: 'Nastala chyba. Zkuste to prosím znovu.',
     errorEmail: 'Tento e-mail je již registrován.',
+    paymentUnavailable: 'Váš profil byl uložen, ale nastavení plateb je momentálně nedostupné. Ozveme se vám, jakmile bude možné dokončit aktivaci.',
     placeholders: {
       fullName: 'Jan Novák',
       email: 'jan.novak@email.cz',
