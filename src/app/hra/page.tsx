@@ -6,7 +6,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
-import { getOrCreateDeviceId, getNickname, setNickname } from '@/lib/gameDevice';
+import { getOrCreateDeviceId, getNickname, setNickname, hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
+import { HowToPlayModal } from '@/components/game/HowToPlayModal';
 
 import type { Mission } from '@/types/game';
 
@@ -53,6 +54,7 @@ export default function GameModePage() {
   const [nicknameDraft, setNicknameDraft] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [city, setCity] = useState<typeof GAME_CITIES[number]['id']>('ceske-budejovice');
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const fetchMissions = useCallback(async (cityId: string) => {
     setLoading(true);
@@ -81,12 +83,18 @@ export default function GameModePage() {
     setEditingNickname(false);
   };
 
+  const closeHowToPlay = () => {
+    markGameOnboardingSeen();
+    setShowHowToPlay(false);
+  };
+
   useEffect(() => {
     const id = getOrCreateDeviceId();
     setDeviceId(id);
     setNicknameState(getNickname());
     fetchStatus(id);
     fetchLeaderboard();
+    if (!hasSeenGameOnboarding()) setShowHowToPlay(true);
 
     const statusTimer = setInterval(() => fetchStatus(id), 15000);
     const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
@@ -140,6 +148,12 @@ export default function GameModePage() {
           <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 GAME MODE</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <button
+            onClick={() => setShowHowToPlay(true)}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-semibold px-3 py-1.5 rounded-full transition-colors"
+          >
+            ❓ Jak hrát
+          </button>
           <span className="bg-yellow-500/10 text-yellow-400 font-bold px-3 py-1.5 rounded-full">
             💰 {totalPoints} bodů
           </span>
@@ -360,6 +374,8 @@ export default function GameModePage() {
           </div>
         </div>
       )}
+
+      {showHowToPlay && <HowToPlayModal onClose={closeHowToPlay} />}
     </div>
   );
 }
