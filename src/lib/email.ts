@@ -45,6 +45,54 @@ export async function sendAppointmentEmail(
   return true;
 }
 
+export async function sendAutopilotReportEmail(
+  to: string,
+  result: {
+    published: { title: string; slug: string }[];
+    totalPublished: number;
+    target: number;
+    reason?: string;
+  },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
+  const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
+
+  const body = result.published.length > 0
+    ? `
+      <p style="color:#555;margin-bottom:16px;">Dnes v noci (${dateStr}) bylo automaticky publikováno ${result.published.length} ${result.published.length === 1 ? 'nový článek' : 'nové články'}:</p>
+      <ul style="padding-left:20px;color:#111;">
+        ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:#f97316;">${a.title}</a></li>`).join('')}
+      </ul>
+    `
+    : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
+
+  await resend.emails.send({
+    from: 'adressa.cz <onboarding@resend.dev>',
+    to,
+    subject: result.published.length > 0
+      ? `✅ ${result.published.length} nové články publikovány – adressa.cz`
+      : `⚠️ Autopilot dnes nic nepublikoval – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Denní report autopilota článků</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatické publikování</p>
+        ${body}
+        <p style="color:#111;font-size:14px;margin-top:24px;font-weight:600;">
+          Celkem publikováno: ${result.totalPublished} / ${result.target}
+        </p>
+        <p style="color:#999;font-size:12px;margin-top:32px;">
+          Tento e-mail byl odeslán automaticky po dokončení denního běhu autopilota.
+        </p>
+      </div>
+    `,
+  });
+
+  return true;
+}
+
 export async function sendVerificationEmail(
   email: string,
   name: string,

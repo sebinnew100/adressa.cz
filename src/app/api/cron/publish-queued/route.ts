@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { sendAutopilotReportEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,21 @@ function requireAuth(request: NextRequest): boolean {
   return auth === `Bearer ${secret}`;
 }
 
+async function sendReport(result: {
+  published: { title: string; slug: string }[];
+  totalPublished: number;
+  target: number;
+  reason?: string;
+}) {
+  const to = process.env.AUTOPILOT_REPORT_EMAIL;
+  if (!to) return;
+  try {
+    await sendAutopilotReportEmail(to, result);
+  } catch (err) {
+    console.error('Autopilot report email failed:', err);
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!requireAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,7 +38,9 @@ export async function GET(request: NextRequest) {
 
   const currentTotal = await prisma.article.count({ where: { published: true } });
   if (currentTotal >= AUTOPILOT_TARGET_TOTAL) {
-    return NextResponse.json({ published: [], totalPublished: currentTotal, done: true, reason: 'target reached' });
+    const result = { published: [], totalPublished: currentTotal, target: AUTOPILOT_TARGET_TOTAL, done: true, reason: 'target reached' };
+    await sendReport(result);
+    return NextResponse.json(result);
   }
 
   const slotsLeft = AUTOPILOT_TARGET_TOTAL - currentTotal;
@@ -35,12 +53,15 @@ export async function GET(request: NextRequest) {
   });
 
   if (queued.length === 0) {
-    return NextResponse.json({
+    const result = {
       published: [],
       totalPublished: currentTotal,
+      target: AUTOPILOT_TARGET_TOTAL,
       done: false,
       reason: 'queue is empty — no articles ready to release',
-    });
+    };
+    await sendReport(result);
+    return NextResponse.json(result);
   }
 
   const published: { id: string; slug: string; title: string }[] = [];
@@ -54,10 +75,12 @@ export async function GET(request: NextRequest) {
 
   const newTotal = await prisma.article.count({ where: { published: true } });
 
-  return NextResponse.json({
+  const result = {
     published,
     totalPublished: newTotal,
     target: AUTOPILOT_TARGET_TOTAL,
     done: newTotal >= AUTOPILOT_TARGET_TOTAL,
-  });
+  };
+  await sendReport(result);
+  return NextResponse.json(result);
 }
