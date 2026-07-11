@@ -33,6 +33,24 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'adressa.cz',
+  url: 'https://www.adressa.cz',
+  description:
+    'Katalog místních řemeslníků a profesionálních služeb v České republice — elektrikáři, instalatéři, malíři, zubaři a další, včetně hodnocení od zákazníků.',
+  areaServed: { '@type': 'Country', name: 'Česká republika' },
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'adressa.cz',
+  url: 'https://www.adressa.cz',
+  inLanguage: 'cs',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="cs" className={inter.variable}>
@@ -41,6 +59,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5770800340894128"
           crossOrigin="anonymous"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
       <body>

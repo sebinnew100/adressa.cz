@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
+import { submitToIndexNow } from '@/lib/indexNow';
 
 function requireAdmin(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -74,6 +75,14 @@ export async function PATCH(
       where: { id: params.id },
       data,
     });
+
+    if (data.active) {
+      await submitToIndexNow([
+        `https://www.adressa.cz/providers/${updated.id}`,
+        `https://www.adressa.cz/${updated.serviceId}/${updated.cityId}`,
+      ]);
+    }
+
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
