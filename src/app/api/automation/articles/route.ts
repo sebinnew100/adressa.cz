@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
       relatedServiceId,
       relatedCityId: relatedCityId ?? null,
       published: !queue,
+      source: 'autopilot',
     },
   });
 

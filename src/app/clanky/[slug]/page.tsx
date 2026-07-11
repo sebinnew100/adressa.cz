@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -7,6 +8,9 @@ import { prisma } from '@/lib/db';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { ARTICLE_CATEGORIES } from '@/data/articleCategories';
+import { ArticleCtaLink } from '@/components/articles/ArticleCtaLink';
+
+const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|preview/i;
 
 const getArticle = cache(async (slug: string) => {
   return prisma.article.findUnique({ where: { slug } });
@@ -104,6 +108,16 @@ export default async function ClankySlugPage({ params }: { params: { slug: strin
   const article = await getArticle(params.slug);
   if (!article || !article.published) notFound();
 
+  const userAgent = headers().get('user-agent') ?? '';
+  if (!BOT_UA.test(userAgent)) {
+    try {
+      await prisma.article.update({
+        where: { id: article.id },
+        data: { views: { increment: 1 } },
+      });
+    } catch {}
+  }
+
   const paragraphs = article.content.split(/\n\s*\n/).filter(p => p.trim());
 
   const relatedService = article.relatedServiceId ? SERVICES.find(s => s.id === article.relatedServiceId) : null;
@@ -179,7 +193,8 @@ export default async function ClankySlugPage({ params }: { params: { slug: strin
               Hledáte {relatedService ? relatedService.nameCz.toLowerCase() : 'odborníka'}
               {relatedCity ? ` v ${relatedCity.nameCz}` : ''}?
             </p>
-            <Link
+            <ArticleCtaLink
+              slug={article.slug}
               href={
                 relatedService && relatedCity
                   ? `/${relatedService.id}/${relatedCity.id}`
@@ -191,7 +206,7 @@ export default async function ClankySlugPage({ params }: { params: { slug: strin
             >
               Najít {relatedService ? relatedService.nameCz.toLowerCase() : 'odborníky'}
               {relatedCity ? ` v ${relatedCity.nameCz}` : ''} →
-            </Link>
+            </ArticleCtaLink>
           </div>
         )}
       </article>

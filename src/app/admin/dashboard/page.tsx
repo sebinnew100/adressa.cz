@@ -214,6 +214,12 @@ export default function AdminDashboard() {
             📝 Články
           </Link>
           <Link
+            href="/admin/insights"
+            className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+          >
+            📈 Přehledy
+          </Link>
+          <Link
             href="/admin/game"
             className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-colors"
           >

@@ -86,6 +86,9 @@ model Article {
   relatedServiceId  String?
   relatedCityId     String?
   published         Boolean  @default(false)
+  source            String   @default("manual") // "manual" | "autopilot"
+  views             Int      @default(0)
+  ctaClicks         Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
