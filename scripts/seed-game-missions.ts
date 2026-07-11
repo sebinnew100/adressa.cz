@@ -10,7 +10,7 @@ async function main() {
   await prisma.gameMission.deleteMany({});
 
   const providers = await prisma.provider.findMany({
-    where: { active: true, cityId: 'ceske-budejovice', serviceId: 'restaurace' },
+    where: { active: true, cityId: 'ceske-budejovice', serviceId: { in: ['restaurace', 'kavarna', 'supermarket'] } },
     take: 8,
     orderBy: { createdAt: 'desc' },
   });
