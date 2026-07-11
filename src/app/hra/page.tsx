@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { getOrCreateDeviceId, getNickname, setNickname, hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
-import { HowToPlayModal } from '@/components/game/HowToPlayModal';
+import { TourOverlay, type TourStep } from '@/components/game/TourOverlay';
 
 import type { Mission } from '@/types/game';
 
@@ -23,6 +23,44 @@ const GAME_CITIES = [
   { id: 'ceske-budejovice', nameCz: 'České Budějovice' },
   { id: 'praha', nameCz: 'Praha' },
 ] as const;
+
+const PRE_MODAL_STEP_COUNT = 3;
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    targetId: 'tour-city-tabs',
+    title: 'Vyberte město',
+    body: 'Tady si vyberete, ve kterém městě chcete hrát — zkuste přepnout záložku.',
+    advanceOnTargetClick: true,
+  },
+  {
+    targetId: 'tour-map',
+    title: 'Mapa misí',
+    body: 'Restaurace s aktivními misemi se zobrazují jako body na mapě. Klikněte na kterýkoli z nich.',
+    advanceOnTargetClick: true,
+  },
+  {
+    targetId: 'tour-mission-card',
+    title: 'Nebo vyberte ze seznamu',
+    body: 'Misi můžete otevřít i kliknutím na kartu tady dole — zkuste to teď.',
+    advanceOnTargetClick: true,
+  },
+  {
+    targetId: 'tour-photo-input',
+    title: 'Nahrajte fotku',
+    body: 'Navštivte místo, něco si kupte a tady nahrajte fotku účtenky nebo produktu jako důkaz.',
+  },
+  {
+    targetId: 'tour-submit-btn',
+    title: 'Odešlete ke schválení',
+    body: 'Klikněte zde a odešlete misi. Admin ji ručně zkontroluje.',
+  },
+  {
+    targetId: 'tour-points-badge',
+    title: 'Získejte odměnu',
+    body: 'Po schválení se vám tady připíšou body. 1000 bodů = 200 Kč, vyplaceno ručně.',
+  },
+];
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return '00:00';
@@ -54,7 +92,8 @@ export default function GameModePage() {
   const [nicknameDraft, setNicknameDraft] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [city, setCity] = useState<typeof GAME_CITIES[number]['id']>('ceske-budejovice');
-  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   const fetchMissions = useCallback(async (cityId: string) => {
     setLoading(true);
@@ -83,10 +122,63 @@ export default function GameModePage() {
     setEditingNickname(false);
   };
 
-  const closeHowToPlay = () => {
+  const endTour = () => {
     markGameOnboardingSeen();
-    setShowHowToPlay(false);
+    setTourActive(false);
+    setSelected(null);
   };
+
+  const goToStep = (index: number) => {
+    if (index >= TOUR_STEPS.length) {
+      endTour();
+      return;
+    }
+    // Entering the "upload photo" step: if the player used Next instead of
+    // actually clicking a mission, open the first real mission ourselves so
+    // there's something real to point at.
+    if (index === PRE_MODAL_STEP_COUNT && !selected) {
+      if (missions.length > 0) setSelected(missions[0]);
+      else { endTour(); return; }
+    }
+    setTourStep(index);
+  };
+
+  const nextStep = () => goToStep(tourStep + 1);
+  const backStep = () => goToStep(Math.max(0, tourStep - 1));
+
+  // If the player clicks a real mission (map pin or card) during the
+  // pre-modal steps, jump straight to the modal steps.
+  useEffect(() => {
+    if (tourActive && selected && tourStep < PRE_MODAL_STEP_COUNT) {
+      setTourStep(PRE_MODAL_STEP_COUNT);
+    }
+  }, [selected, tourActive, tourStep]);
+
+  // If the player closes the mission modal mid-tour, don't leave the tour
+  // pointing at a vanished target — just end it gracefully.
+  useEffect(() => {
+    if (tourActive && !selected && tourStep >= PRE_MODAL_STEP_COUNT) {
+      endTour();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  // Auto-advance when the player actually clicks the highlighted element.
+  useEffect(() => {
+    if (!tourActive) return;
+    const step = TOUR_STEPS[tourStep];
+    if (!step?.advanceOnTargetClick || !step.targetId) return;
+
+    const handler = (e: MouseEvent) => {
+      const target = document.getElementById(step.targetId as string);
+      if (target && e.target instanceof Node && target.contains(e.target)) {
+        goToStep(tourStep + 1);
+      }
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourActive, tourStep]);
 
   useEffect(() => {
     const id = getOrCreateDeviceId();
@@ -94,7 +186,10 @@ export default function GameModePage() {
     setNicknameState(getNickname());
     fetchStatus(id);
     fetchLeaderboard();
-    if (!hasSeenGameOnboarding()) setShowHowToPlay(true);
+    if (!hasSeenGameOnboarding()) {
+      setTourStep(0);
+      setTourActive(true);
+    }
 
     const statusTimer = setInterval(() => fetchStatus(id), 15000);
     const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
@@ -149,12 +244,12 @@ export default function GameModePage() {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <button
-            onClick={() => setShowHowToPlay(true)}
+            onClick={() => { setTourStep(0); setTourActive(true); }}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-semibold px-3 py-1.5 rounded-full transition-colors"
           >
             ❓ Jak hrát
           </button>
-          <span className="bg-yellow-500/10 text-yellow-400 font-bold px-3 py-1.5 rounded-full">
+          <span id="tour-points-badge" className="bg-yellow-500/10 text-yellow-400 font-bold px-3 py-1.5 rounded-full">
             💰 {totalPoints} bodů
           </span>
           <span className="bg-purple-500/10 text-purple-300 font-bold px-3 py-1.5 rounded-full">
@@ -232,7 +327,7 @@ export default function GameModePage() {
           </div>
         )}
 
-        <div className="mb-6 flex gap-2">
+        <div id="tour-city-tabs" className="mb-6 flex gap-2">
           {GAME_CITIES.map(c => (
             <button
               key={c.id}
@@ -247,7 +342,7 @@ export default function GameModePage() {
         </div>
 
         {!loading && missions.length > 0 && (
-          <div className="mb-8">
+          <div id="tour-map" className="mb-8">
             <h2 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
               🗺️ Herní mapa — {GAME_CITIES.find(c => c.id === city)?.nameCz}
             </h2>
@@ -263,13 +358,14 @@ export default function GameModePage() {
           <>
           <h2 className="text-sm font-bold text-purple-300 mb-3">📋 Seznam misí</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {missions.map(mission => {
+            {missions.map((mission, i) => {
               const remaining = new Date(mission.expiresAt).getTime() - now;
               const service = SERVICES.find(s => s.id === mission.provider.serviceId);
               const city = CITIES.find(c => c.id === mission.provider.cityId);
               return (
                 <button
                   key={mission.id}
+                  id={i === 0 ? 'tour-mission-card' : undefined}
                   onClick={() => setSelected(mission)}
                   className={`text-left bg-gray-900 border rounded-2xl overflow-hidden transition-transform hover:scale-[1.02] ${
                     mission.isGrandChallenge ? 'border-yellow-500 game-pulse' : 'border-gray-800'
@@ -352,9 +448,10 @@ export default function GameModePage() {
               <p className="text-center py-4">{submitMessage}</p>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input type="file" name="photo" accept="image/*" required className="w-full text-sm text-gray-300" />
+                <input id="tour-photo-input" type="file" name="photo" accept="image/*" required className="w-full text-sm text-gray-300" />
                 <div className="flex gap-3">
                   <button
+                    id="tour-submit-btn"
                     type="submit"
                     disabled={uploading}
                     className="flex-1 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
@@ -375,7 +472,16 @@ export default function GameModePage() {
         </div>
       )}
 
-      {showHowToPlay && <HowToPlayModal onClose={closeHowToPlay} />}
+      {tourActive && (
+        <TourOverlay
+          step={TOUR_STEPS[tourStep]}
+          stepIndex={tourStep}
+          totalSteps={TOUR_STEPS.length}
+          onNext={nextStep}
+          onBack={backStep}
+          onSkip={endTour}
+        />
+      )}
     </div>
   );
 }
