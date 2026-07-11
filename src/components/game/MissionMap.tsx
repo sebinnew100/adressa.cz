@@ -397,7 +397,7 @@ export default function MissionMap({
 
   return (
     <div className="relative rounded-2xl game-glow-header p-[3px]">
-      <div className="relative rounded-2xl overflow-hidden border border-purple-700/50" style={{ height: '65vh' }}>
+      <div className="relative rounded-2xl overflow-hidden border border-purple-700/50 h-[82dvh] sm:h-[65vh]">
         <LocationPrompt status={locationStatus} onRequest={requestLocation} />
         <MapContainer center={CB_CENTER} zoom={14} style={{ height: '100%', width: '100%', background: '#f1f3f4' }}>
           <TileLayer
