@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/publish-queued",
+      "schedule": "30 3 * * *"
+    }
+  ]
+}

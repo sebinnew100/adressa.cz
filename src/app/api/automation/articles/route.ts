@@ -36,14 +36,16 @@ export async function GET(request: NextRequest) {
   }
 
   const total = await prisma.article.count({ where: { published: true } });
+  const queuedCount = await prisma.article.count({ where: { published: false } });
   const existing = await prisma.article.findMany({
-    where: { published: true },
-    select: { title: true, slug: true, relatedServiceId: true, relatedCityId: true },
+    where: {},
+    select: { title: true, slug: true, relatedServiceId: true, relatedCityId: true, published: true },
     orderBy: { createdAt: 'asc' },
   });
 
   return NextResponse.json({
     totalPublished: total,
+    queuedCount,
     target: AUTOPILOT_TARGET_TOTAL,
     remaining: Math.max(0, AUTOPILOT_TARGET_TOTAL - total),
     done: total >= AUTOPILOT_TARGET_TOTAL,
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { title, excerpt, content, relatedServiceId, relatedCityId } = body;
+  const { title, excerpt, content, relatedServiceId, relatedCityId, queue } = body;
 
   if (typeof title !== 'string' || title.trim().length < 10) {
     return NextResponse.json({ error: 'title is required (min 10 chars)' }, { status: 400 });
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
       content: content.trim(),
       relatedServiceId,
       relatedCityId: relatedCityId ?? null,
-      published: true,
+      published: !queue,
     },
   });
 
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest) {
       slug: article.slug,
       title: article.title,
       hasCoverImage: !!image,
+      queued: !!queue,
       totalPublished: newTotal,
       target: AUTOPILOT_TARGET_TOTAL,
       remaining: Math.max(0, AUTOPILOT_TARGET_TOTAL - newTotal),
