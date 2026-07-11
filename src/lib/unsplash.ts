@@ -43,7 +43,9 @@ interface UnsplashPhoto {
 }
 
 export async function findUnsplashPhoto(query: string): Promise<UnsplashPhoto | null> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  // Strip a stray BOM (U+FEFF) or other whitespace some tools prepend when
+  // saving env values on Windows — a raw BOM breaks the Headers constructor.
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY?.trim();
   if (!accessKey) return null;
 
   try {
