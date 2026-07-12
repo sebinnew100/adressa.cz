@@ -30,8 +30,8 @@ interface SalesData {
     subscribed: number;
     leads: number;
     contacted: number;
-    atRisk: number;
-    removedByCampaign: number;
+    pastDeadline: number;
+    manuallyDeactivated: number;
     scheduled: number;
   };
 }
@@ -206,7 +206,7 @@ export default function AdminSalesPage() {
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
-          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem, odešle naplánované strategické pitche a odstraní profily, kterým vypršela 7denní lhůta bez předplatného. Naplánovaný čas níže je datum — e-mail odejde v rámci nejbližšího denního běhu po tomto čase, ne přesně v danou minutu.
+          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem a odešle naplánované strategické pitche. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu. Naplánovaný čas níže je datum — e-mail odejde v rámci nejbližšího denního běhu po tomto čase, ne přesně v danou minutu.
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">
@@ -240,8 +240,8 @@ export default function AdminSalesPage() {
             { label: 'Leads', value: data?.stats.leads ?? '—' },
             { label: 'Již oslovení', value: data?.stats.contacted ?? '—' },
             { label: 'Naplánováno', value: data?.stats.scheduled ?? '—' },
-            { label: 'Ohroženo dnes', value: data?.stats.atRisk ?? '—' },
-            { label: 'Odstraněno kampaní', value: data?.stats.removedByCampaign ?? '—' },
+            { label: 'Po termínu (bez akce)', value: data?.stats.pastDeadline ?? '—' },
+            { label: 'Ručně deaktivováno', value: data?.stats.manuallyDeactivated ?? '—' },
           ].map(s => (
             <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <div className="text-2xl font-bold text-white">{s.value}</div>

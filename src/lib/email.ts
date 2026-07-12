@@ -160,7 +160,7 @@ export async function sendSalesAutopilotReportEmail(
     scheduled: { fullName: string; email: string }[];
     pitched: { fullName: string; email: string }[];
     reminded: { fullName: string; email: string }[];
-    removed: { fullName: string; email: string | null }[];
+    pastDeadline: { fullName: string; email: string | null }[];
     remainingLeads: number;
   },
 ): Promise<boolean> {
@@ -177,12 +177,12 @@ export async function sendSalesAutopilotReportEmail(
       </ul>
     `;
 
-  const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.removed.length;
+  const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.pastDeadline.length;
 
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
-    subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.removed.length} odebráno – adressa.cz`,
+    subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.pastDeadline.length} po termínu – adressa.cz`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;">
         <h2 style="color:#111;margin-bottom:4px;">Denní report sales autopilota</h2>
@@ -191,7 +191,7 @@ export async function sendSalesAutopilotReportEmail(
         ${section('📅 Naplánováno strategicky', result.scheduled)}
         ${section('Nově osloveno (pitch)', result.pitched)}
         ${section('Poslána připomínka', result.reminded)}
-        ${section('⚠️ Odstraněno (termín vypršel)', result.removed)}
+        ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
         ${totalActions === 0
           ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}
         <p style="color:#999;font-size:12px;margin-top:32px;">

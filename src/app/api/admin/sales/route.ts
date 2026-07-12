@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const now = new Date();
-    const [leads, subscribedCount, totalCount, removedByCampaignCount] = await Promise.all([
+    const [leads, subscribedCount, totalCount, manuallyDeactivatedCount] = await Promise.all([
       prisma.provider.findMany({
         where: LEAD_WHERE,
         orderBy: [{ removalDeadline: 'asc' }, { createdAt: 'desc' }],
@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
       }),
       prisma.provider.count({ where: { stripeSubscriptionId: { not: null } } }),
       prisma.provider.count(),
+      // The cron never auto-deactivates leads (deadline is messaging only,
+      // not enforced) — this can only be non-zero from a manual admin toggle.
       prisma.provider.count({ where: { ...LEAD_WHERE, active: false, removalDeadline: { not: null } } }),
     ]);
 
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest) {
         : null,
     }));
 
-    const atRisk = withStats.filter(l => l.active && l.removalDeadline && l.removalDeadline < now).length;
+    const pastDeadline = withStats.filter(l => l.active && l.removalDeadline && l.removalDeadline < now).length;
 
     return NextResponse.json({
       leads: withStats,
@@ -50,8 +52,8 @@ export async function GET(request: NextRequest) {
         subscribed: subscribedCount,
         leads: leads.length,
         contacted: withStats.filter(l => l.contactCount > 0).length,
-        atRisk,
-        removedByCampaign: removedByCampaignCount,
+        pastDeadline,
+        manuallyDeactivated: manuallyDeactivatedCount,
         scheduled: withStats.filter(l => l.scheduledSendAt).length,
       },
     });

@@ -23,7 +23,7 @@ async function sendReport(result: {
   scheduled: { fullName: string; email: string }[];
   pitched: { fullName: string; email: string }[];
   reminded: { fullName: string; email: string }[];
-  removed: { fullName: string; email: string | null }[];
+  pastDeadline: { fullName: string; email: string | null }[];
   remainingLeads: number;
 }) {
   const to = process.env.AUTOPILOT_REPORT_EMAIL;
@@ -80,17 +80,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 1. Deactivate providers whose 7-day deadline passed without a subscription.
-  const overdue = await prisma.provider.findMany({
+  // 1. Report-only: providers whose 7-day deadline passed without a
+  // subscription. The email tells them the listing "will be removed", but
+  // deliberately does NOT actually deactivate anyone — this is informational
+  // for the admin (who's ignoring the deadline) only, not an enforcement step.
+  const pastDeadline = await prisma.provider.findMany({
     where: { stripeSubscriptionId: null, active: true, salesExempt: false, removalDeadline: { lt: now } },
     select: { id: true, fullName: true, email: true },
   });
-  if (overdue.length > 0) {
-    await prisma.provider.updateMany({
-      where: { id: { in: overdue.map(p => p.id) } },
-      data: { active: false },
-    });
-  }
 
   // 2. Remind leads whose deadline is within REMINDER_WINDOW_DAYS and haven't been reminded yet.
   const reminderCandidates = await prisma.provider.findMany({
@@ -167,7 +164,7 @@ export async function GET(request: NextRequest) {
     scheduled,
     pitched,
     reminded,
-    removed: overdue.map(p => ({ fullName: p.fullName, email: p.email })),
+    pastDeadline: pastDeadline.map(p => ({ fullName: p.fullName, email: p.email })),
     remainingLeads,
   };
 
