@@ -317,6 +317,9 @@ export async function sendSalesAutopilotReportEmail(
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;">
         <h2 style="color:#111;margin-bottom:4px;">Denní report sales autopilota</h2>
         <p style="color:#777;font-size:13px;margin-bottom:8px;">adressa.cz — ${dateStr}</p>
+        <p style="color:#111;font-size:14px;font-weight:600;">
+          Celkem odesláno dnes: ${result.sent.length + result.scheduled.length} e-mailů
+        </p>
         <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
         ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
         ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
