@@ -31,6 +31,7 @@ model Provider {
   reviews      Review[]
   appointments AppointmentRequest[]
   missions     GameMission[]
+  salesContacts SalesContact[]
 }
 
 model AppointmentRequest {
@@ -106,6 +107,14 @@ model GameMission {
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
   submissions      GameSubmission[]
+}
+
+model SalesContact {
+  id         String   @id @default(cuid())
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  type       String   // "pitch" | "reminder"
+  sentAt     DateTime @default(now())
 }
 
 model GameSubmission {

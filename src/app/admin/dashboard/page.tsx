@@ -226,6 +226,12 @@ export default function AdminDashboard() {
             🎮 Game Mode
           </Link>
           <Link
+            href="/admin/sales"
+            className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+          >
+            💌 Sales
+          </Link>
+          <Link
             href="/"
             target="_blank"
             className="text-sm text-gray-400 hover:text-white transition-colors"

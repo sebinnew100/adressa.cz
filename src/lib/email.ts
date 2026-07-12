@@ -93,6 +93,53 @@ export async function sendAutopilotReportEmail(
   return true;
 }
 
+export async function sendProviderSalesPitchEmail(
+  provider: { id: string; fullName: string; email: string },
+  opts: { isReminder: boolean },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
+  const activateUrl = `${baseUrl}/aktivovat/${provider.id}`;
+
+  const subject = opts.isReminder
+    ? `Váš profil na adressa.cz stále čeká na aktivaci`
+    : `${provider.fullName}, získejte nové zákazníky přes adressa.cz`;
+
+  const intro = opts.isReminder
+    ? `Váš profil <strong>${provider.fullName}</strong> je na adressa.cz stále neaktivní — zákazníci ho zatím nevidí.`
+    : `Váš profil <strong>${provider.fullName}</strong> je na adressa.cz veden, ale zatím není viditelný pro zákazníky.`;
+
+  await resend.emails.send({
+    from: 'adressa.cz <onboarding@resend.dev>',
+    to: provider.email,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Dokončete aktivaci profilu</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">${intro}</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Aktivace zabere méně než minutu:</p>
+        <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
+          <li>15 Kč aktivační poplatek (jednorázově)</li>
+          <li>7 dní zdarma na vyzkoušení</li>
+          <li>poté 299 Kč každých 28 dní, kdykoliv zrušitelné</li>
+        </ul>
+        <a href="${activateUrl}"
+           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;margin-top:12px;">
+          Aktivovat profil
+        </a>
+        <p style="color:#999;font-size:12px;margin-top:32px;">
+          Pokud si aktivaci nepřejete, tento e-mail můžete ignorovat.
+        </p>
+      </div>
+    `,
+  });
+
+  return true;
+}
+
 export async function sendVerificationEmail(
   email: string,
   name: string,
