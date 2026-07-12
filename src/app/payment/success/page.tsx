@@ -23,13 +23,13 @@ export default function PaymentSuccessPage() {
           </h1>
           <p className="text-ink-light text-sm mb-2">
             {language === 'cs'
-              ? 'Váš profil je nyní aktivní. Prvních 7 dní je zdarma.'
-              : 'Your profile is now active. The first 7 days are free.'}
+              ? 'Váš profil je nyní aktivní. Aktivační poplatek 10 Kč byl právě stržen a příštích 7 dní je součástí zkušebního období.'
+              : 'Your profile is now active. A 10 CZK activation fee was just charged, and the next 7 days are your trial period.'}
           </p>
           <p className="text-ink-lighter text-xs mb-8">
             {language === 'cs'
-              ? 'Poté se z vaší karty automaticky strhne 90 Kč měsíčně, dokud předplatné nezrušíte. Potvrzení obdržíte na e-mail.'
-              : 'After that, 90 CZK/month will be automatically charged to your card until you cancel. A confirmation has been sent to your email.'}
+              ? 'Poté se z vaší karty automaticky strhne 299 Kč měsíčně, dokud předplatné nezrušíte. Potvrzení obdržíte na e-mail.'
+              : 'After that, 299 CZK/month will be automatically charged to your card until you cancel. A confirmation has been sent to your email.'}
           </p>
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">

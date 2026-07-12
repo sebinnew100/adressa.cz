@@ -37,7 +37,13 @@ export async function POST(request: NextRequest) {
       const subDetails = invoice.parent?.subscription_details;
       const subscriptionId = (typeof subDetails?.subscription === 'string' ? subDetails.subscription : subDetails?.subscription?.id) ?? null;
       if (subscriptionId) {
-        const periodEndUnix = invoice.lines.data[0]?.period?.end;
+        // The invoice may bundle a same-day one-time fee alongside the
+        // subscription's billing period line — take the furthest-out period
+        // end so a same-day one-time item never gets mistaken for it.
+        const periodEndUnix = invoice.lines.data.reduce<number | null>((latest, line) => {
+          const end = line.period?.end;
+          return end && (!latest || end > latest) ? end : latest;
+        }, null);
         const paidUntil = periodEndUnix ? new Date(periodEndUnix * 1000) : undefined;
         await prisma.provider.updateMany({
           where: { stripeSubscriptionId: subscriptionId },
