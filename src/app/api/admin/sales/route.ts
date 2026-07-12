@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
+import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,11 +10,10 @@ function requireAdmin(request: NextRequest) {
   return token === getExpectedToken();
 }
 
-// A "real" lead has an address on file — bulk-imported real businesses all
-// have one; the handful of leftover manual test rows from form-testing
-// (gibberish names, no address) are excluded by this filter rather than
-// deleted from the DB.
-const LEAD_WHERE = { stripeSubscriptionId: null, address: { not: null } } as const;
+// A "real" lead is any unpaid provider that isn't one of the known test/dev
+// rows — this automatically includes future signups (address is optional on
+// the real registration form, so it can't be used as a real/junk signal).
+const LEAD_WHERE = { stripeSubscriptionId: null, id: { notIn: [...KNOWN_TEST_PROVIDER_IDS] as string[] } };
 
 export async function GET(request: NextRequest) {
   if (!requireAdmin(request)) {

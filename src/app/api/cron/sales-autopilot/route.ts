@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { sendProviderSalesPitchEmail, sendSalesAutopilotReportEmail, SalesPitchStage } from '@/lib/email';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
+import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
       salesExempt: false,
       email: { not: null },
       scheduledSendAt: { lte: now },
+      id: { notIn: [...KNOWN_TEST_PROVIDER_IDS] },
     },
     include: { salesContacts: { select: { type: true, sentAt: true } } },
   });
@@ -128,13 +130,16 @@ export async function GET(request: NextRequest) {
   });
 
   // 2. Everyone else: figure out who's due for their next stage today, and
-  // who's never been contacted at all (eligible for 'intro').
+  // who's never been contacted at all (eligible for 'intro'). Deliberately
+  // NOT filtering on `address` here — it's optional on the real registration
+  // form, so requiring it would silently exclude genuine future signups.
+  // Only the known confirmed test/dev rows are excluded, by ID.
   const allLeads = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
-      address: { not: null },
       email: { not: null },
       salesExempt: false,
+      id: { notIn: [...KNOWN_TEST_PROVIDER_IDS] },
     },
     select: {
       id: true, fullName: true, email: true, serviceId: true, cityId: true,
