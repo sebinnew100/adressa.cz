@@ -28,6 +28,7 @@ model Provider {
   subscriptionStatus   String?
   removalDeadline DateTime?
   salesExempt     Boolean   @default(false)
+  scheduledSendAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reviews      Review[]

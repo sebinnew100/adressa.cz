@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { NextRunCountdown } from '@/components/admin/NextRunCountdown';
 
 interface Article {
   id: string;
@@ -68,6 +69,9 @@ export default function AdminArticlesPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        <div className="mb-6">
+          <NextRunCountdown label="Příští automatické publikování (autopilot)" hourUtc={22} />
+        </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           {loading ? (
             <div className="text-center py-16 text-gray-500">Načítám...</div>

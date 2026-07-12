@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
+import { NextRunCountdown } from '@/components/admin/NextRunCountdown';
 
 interface Lead {
   id: string;
@@ -15,6 +16,7 @@ interface Lead {
   active: boolean;
   salesExempt: boolean;
   removalDeadline: string | null;
+  scheduledSendAt: string | null;
   daysLeft: number | null;
   createdAt: string;
   contactCount: number;
@@ -30,6 +32,7 @@ interface SalesData {
     contacted: number;
     atRisk: number;
     removedByCampaign: number;
+    scheduled: number;
   };
 }
 
@@ -41,6 +44,8 @@ export default function AdminSalesPage() {
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [exemptingId, setExemptingId] = useState<string | null>(null);
+  const [schedulingId, setSchedulingId] = useState<string | null>(null);
+  const [scheduleDraft, setScheduleDraft] = useState<Record<string, string>>({});
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -117,6 +122,36 @@ export default function AdminSalesPage() {
     setExemptingId(null);
   };
 
+  const setSchedule = async (id: string) => {
+    const value = scheduleDraft[id];
+    if (!value) return;
+    setSchedulingId(id);
+    const scheduledSendAt = new Date(value).toISOString();
+    const res = await fetch(`/api/admin/providers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduledSendAt }),
+    });
+    if (res.ok && data) {
+      setData({ ...data, leads: data.leads.map(l => l.id === id ? { ...l, scheduledSendAt } : l) });
+      setScheduleDraft(prev => { const next = { ...prev }; delete next[id]; return next; });
+    }
+    setSchedulingId(null);
+  };
+
+  const cancelSchedule = async (id: string) => {
+    setSchedulingId(id);
+    const res = await fetch(`/api/admin/providers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduledSendAt: null }),
+    });
+    if (res.ok && data) {
+      setData({ ...data, leads: data.leads.map(l => l.id === id ? { ...l, scheduledSendAt: null } : l) });
+    }
+    setSchedulingId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
@@ -133,16 +168,21 @@ export default function AdminSalesPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
-          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem a odstraní profily, kterým vypršela 7denní lhůta bez předplatného. Tato stránka je pro ruční zásahy a přehled.
+        <div className="flex flex-wrap gap-4 mb-8">
+          <NextRunCountdown label="Příští automatický běh (nové leady, připomínky, odstranění)" hourUtc={20} />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
+          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem, odešle naplánované strategické pitche a odstraní profily, kterým vypršela 7denní lhůta bez předplatného. Naplánovaný čas níže je datum — e-mail odejde v rámci nejbližšího denního běhu po tomto čase, ne přesně v danou minutu.
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
           {[
             { label: 'Celkem profilů', value: data?.stats.totalProviders ?? '—' },
             { label: 'Předplácí', value: data?.stats.subscribed ?? '—' },
             { label: 'Leads', value: data?.stats.leads ?? '—' },
             { label: 'Již oslovení', value: data?.stats.contacted ?? '—' },
+            { label: 'Naplánováno', value: data?.stats.scheduled ?? '—' },
             { label: 'Ohroženo dnes', value: data?.stats.atRisk ?? '—' },
             { label: 'Odstraněno kampaní', value: data?.stats.removedByCampaign ?? '—' },
           ].map(s => (
@@ -200,6 +240,7 @@ export default function AdminSalesPage() {
                     <th className="text-left px-6 py-3">E-mail</th>
                     <th className="text-center px-6 py-3">Stav</th>
                     <th className="text-center px-6 py-3">Kontaktováno</th>
+                    <th className="text-left px-6 py-3">Naplánovat pitch</th>
                     <th className="text-center px-6 py-3">Vyloučit</th>
                     <th className="text-right px-6 py-3">Akce</th>
                   </tr>
@@ -244,6 +285,38 @@ export default function AdminSalesPage() {
                             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400" title={lead.lastContactedAt ?? ''}>
                               {lead.contactCount}× · {lead.lastContactedAt && new Date(lead.lastContactedAt).toLocaleDateString('cs-CZ')}
                             </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {lead.scheduledSendAt ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-purple-300 font-medium">
+                                📅 {new Date(lead.scheduledSendAt).toLocaleString('cs-CZ', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                              <button
+                                onClick={() => cancelSchedule(lead.id)}
+                                disabled={schedulingId === lead.id}
+                                className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                              >
+                                Zrušit
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="datetime-local"
+                                value={scheduleDraft[lead.id] ?? ''}
+                                onChange={e => setScheduleDraft(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand"
+                              />
+                              <button
+                                onClick={() => setSchedule(lead.id)}
+                                disabled={!scheduleDraft[lead.id] || schedulingId === lead.id}
+                                className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded-lg transition-colors disabled:opacity-40"
+                              >
+                                📅
+                              </button>
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">

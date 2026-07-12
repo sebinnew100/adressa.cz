@@ -145,6 +145,7 @@ export async function sendProviderSalesPitchEmail(
 export async function sendSalesAutopilotReportEmail(
   to: string,
   result: {
+    scheduled: { fullName: string; email: string }[];
     pitched: { fullName: string; email: string }[];
     reminded: { fullName: string; email: string }[];
     removed: { fullName: string; email: string | null }[];
@@ -164,19 +165,22 @@ export async function sendSalesAutopilotReportEmail(
       </ul>
     `;
 
+  const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.removed.length;
+
   await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to,
-    subject: `Sales autopilot: ${result.pitched.length} osloveno, ${result.removed.length} odebráno – adressa.cz`,
+    subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.removed.length} odebráno – adressa.cz`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;">
         <h2 style="color:#111;margin-bottom:4px;">Denní report sales autopilota</h2>
         <p style="color:#777;font-size:13px;margin-bottom:8px;">adressa.cz — ${dateStr}</p>
         <p style="color:#111;font-size:14px;">Zbývá oslovit: <strong>${result.remainingLeads}</strong> profilů</p>
+        ${section('📅 Naplánováno strategicky', result.scheduled)}
         ${section('Nově osloveno (pitch)', result.pitched)}
         ${section('Poslána připomínka', result.reminded)}
         ${section('⚠️ Odstraněno (termín vypršel)', result.removed)}
-        ${result.pitched.length === 0 && result.reminded.length === 0 && result.removed.length === 0
+        ${totalActions === 0
           ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}
         <p style="color:#999;font-size:12px;margin-top:32px;">
           Tento e-mail byl odeslán automaticky po dokončení denního běhu sales autopilota.

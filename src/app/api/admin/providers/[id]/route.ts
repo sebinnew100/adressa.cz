@@ -64,6 +64,7 @@ export async function PATCH(
     const data: any = {};
     if ('featured' in body) data.featured = Boolean(body.featured);
     if ('salesExempt' in body) data.salesExempt = Boolean(body.salesExempt);
+    if ('scheduledSendAt' in body) data.scheduledSendAt = body.scheduledSendAt ? new Date(body.scheduledSendAt) : null;
     if ('active' in body) {
       data.active = Boolean(body.active);
       if (data.active) {

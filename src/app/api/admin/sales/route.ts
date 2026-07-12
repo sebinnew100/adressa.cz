@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
         contacted: withStats.filter(l => l.contactCount > 0).length,
         atRisk,
         removedByCampaign: removedByCampaignCount,
+        scheduled: withStats.filter(l => l.scheduledSendAt).length,
       },
     });
   } catch {

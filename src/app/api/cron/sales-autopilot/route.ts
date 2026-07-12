@@ -20,6 +20,7 @@ function requireAuth(request: NextRequest): boolean {
 }
 
 async function sendReport(result: {
+  scheduled: { fullName: string; email: string }[];
   pitched: { fullName: string; email: string }[];
   reminded: { fullName: string; email: string }[];
   removed: { fullName: string; email: string | null }[];
@@ -40,6 +41,44 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
+
+  // 0. Strategic sends the admin scheduled a specific time for — these jump
+  // the queue ahead of the generic batch. Cron only runs once a day, so
+  // "schedule a time" really means "schedule a date": anything due gets sent
+  // on the next daily run at/after that time, not at the exact minute.
+  const scheduledDue = await prisma.provider.findMany({
+    where: {
+      stripeSubscriptionId: null,
+      salesExempt: false,
+      email: { not: null },
+      scheduledSendAt: { lte: now },
+    },
+    include: { salesContacts: { select: { id: true }, take: 1 } },
+  });
+  const scheduled: { fullName: string; email: string }[] = [];
+  for (const p of scheduledDue) {
+    if (!p.email) continue;
+    const isReminder = p.salesContacts.length > 0;
+    const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    try {
+      const sent = await sendProviderSalesPitchEmail(
+        { id: p.id, fullName: p.fullName, email: p.email },
+        { isReminder, deadline },
+      );
+      if (sent) {
+        await prisma.$transaction([
+          prisma.salesContact.create({ data: { providerId: p.id, type: isReminder ? 'reminder' : 'pitch' } }),
+          prisma.provider.update({
+            where: { id: p.id },
+            data: { scheduledSendAt: null, removalDeadline: p.removalDeadline ?? deadline },
+          }),
+        ]);
+        scheduled.push({ fullName: p.fullName, email: p.email });
+      }
+    } catch (err) {
+      console.error('Sales autopilot scheduled send failed for', p.id, err);
+    }
+  }
 
   // 1. Deactivate providers whose 7-day deadline passed without a subscription.
   const overdue = await prisma.provider.findMany({
@@ -125,6 +164,7 @@ export async function GET(request: NextRequest) {
   });
 
   const result = {
+    scheduled,
     pitched,
     reminded,
     removed: overdue.map(p => ({ fullName: p.fullName, email: p.email })),
