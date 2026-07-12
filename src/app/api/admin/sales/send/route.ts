@@ -44,7 +44,11 @@ export async function POST(request: NextRequest) {
     const deadline = provider.removalDeadline ?? new Date(Date.now() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: provider.id, fullName: provider.fullName, email: provider.email, serviceNameCz: service, cityNameCz: city },
+        {
+          id: provider.id, fullName: provider.fullName, email: provider.email,
+          serviceNameCz: service, cityNameCz: city,
+          description: provider.description, picturePath: provider.picturePath,
+        },
         { stage, deadline },
       );
       if (!result.ok) {

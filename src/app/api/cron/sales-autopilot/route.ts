@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
         { stage, deadline },
       );
       if (result.ok) {
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     if (!p.email || p.salesContacts.length > 0 || !p.removalDeadline) continue;
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
         { stage: 'waiting', deadline: p.removalDeadline },
       );
       if (result.ok) {
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
     const deadline = new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
         { stage: 'intro', deadline },
       );
       if (result.ok) {

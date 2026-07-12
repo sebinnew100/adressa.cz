@@ -117,7 +117,10 @@ function randomExampleLead(serviceNameCz: string) {
 }
 
 export async function sendProviderSalesPitchEmail(
-  provider: { id: string; fullName: string; email: string; serviceNameCz: string; cityNameCz: string },
+  provider: {
+    id: string; fullName: string; email: string; serviceNameCz: string; cityNameCz: string;
+    description?: string | null; picturePath?: string | null;
+  },
   opts: { stage: SalesPitchStage; deadline: Date },
 ): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
@@ -156,6 +159,9 @@ export async function sendProviderSalesPitchEmail(
 
   if (opts.stage === 'intro') {
     const lead = randomExampleLead(service);
+    const descriptionSnippet = provider.description
+      ? provider.description.length > 140 ? provider.description.slice(0, 140).trim() + '…' : provider.description
+      : null;
     subject = `${provider.fullName}, vytvořili jsme pro vás profil na adressa.cz`;
     html = `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
@@ -165,8 +171,19 @@ export async function sendProviderSalesPitchEmail(
           Ahoj <strong>${provider.fullName}</strong>, jsme adressa.cz — místo, kde lidé v ${city} hledají ${service.toLowerCase()}.
           Váš profil jsme pro vás již vytvořili a je veřejně viditelný.
         </p>
-        <a href="${profileUrl}" style="color:#f97316;font-weight:600;text-decoration:none;font-size:14px;">→ Zobrazit váš profil</a>
-        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Co pro vás adressa.cz dělá:</p>
+        <div style="margin:20px 0;border:1px solid #eee;border-radius:12px;overflow:hidden;">
+          ${provider.picturePath ? `<img src="${provider.picturePath}" alt="${provider.fullName}" style="width:100%;height:160px;object-fit:cover;display:block;" />` : ''}
+          <div style="padding:18px;">
+            <p style="margin:0 0 4px;font-weight:700;color:#111;font-size:17px;">${provider.fullName}</p>
+            <p style="margin:0 0 10px;color:#f97316;font-size:13px;font-weight:600;">${service} · ${city}</p>
+            ${descriptionSnippet ? `<p style="margin:0 0 16px;color:#555;font-size:13px;line-height:1.5;">${descriptionSnippet}</p>` : ''}
+            <a href="${profileUrl}"
+               style="display:inline-block;background:#111;color:#fff;font-weight:700;padding:13px 26px;border-radius:8px;text-decoration:none;font-size:15px;">
+              👀 Zobrazit celý profil
+            </a>
+          </div>
+        </div>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Co pro vás adressa.cz dělá:</p>
         <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
           <li>Zákazníci vás najdou přímo na Google i na webu</li>
           <li>Poptávky chodí rovnou vám na e-mail</li>
