@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { providerId } = await request.json();
+    const { providerId, testMode } = await request.json();
     if (!providerId) return NextResponse.json({ error: 'Missing providerId' }, { status: 400 });
 
     const provider = await prisma.provider.findUnique({ where: { id: providerId } });
@@ -16,13 +16,19 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adresarcz.vercel.app';
 
+    // TEMPORARY: testMode lets us verify recurring billing on a fast 1-hour
+    // cycle at 10 CZK instead of waiting 7 real days at 90 CZK. Not exposed
+    // in the registration form UI. Remove this branch once verified.
+    const unitAmount = testMode ? 1000 : MONTHLY_PRICE_CZK;
+    const trialEnd = testMode ? Math.floor(Date.now() / 1000) + 60 * 60 : undefined;
+
     const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
             currency: 'czk',
-            unit_amount: MONTHLY_PRICE_CZK,
+            unit_amount: unitAmount,
             recurring: { interval: 'month' },
             product_data: {
               name: 'adressa.cz — Měsíční inzerce profilu',
@@ -34,7 +40,7 @@ export async function POST(request: NextRequest) {
       ],
       mode: 'subscription',
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
+        ...(trialEnd ? { trial_end: trialEnd } : { trial_period_days: TRIAL_DAYS }),
         metadata: { providerId },
       },
       metadata: { providerId },
