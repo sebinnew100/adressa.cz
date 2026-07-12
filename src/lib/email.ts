@@ -265,14 +265,20 @@ export async function sendProviderSalesPitchEmail(
   return { ok: true };
 }
 
+const STAGE_LABEL_CZ: Record<string, string> = {
+  intro: '1️⃣ Úvod',
+  waiting: '2️⃣ Čekají',
+  hidden: '3️⃣ Skryté',
+  followup: '4️⃣ Follow-up',
+};
+
 export async function sendSalesAutopilotReportEmail(
   to: string,
   result: {
-    scheduled: { fullName: string; email: string }[];
-    pitched: { fullName: string; email: string }[];
-    reminded: { fullName: string; email: string }[];
+    scheduled: { fullName: string; email: string; stage: string }[];
+    sent: { fullName: string; email: string; stage: string }[];
     pastDeadline: { fullName: string; email: string | null }[];
-    remainingLeads: number;
+    remainingNeverContacted: number;
   },
 ): Promise<boolean> {
   const resend = getResend();
@@ -288,20 +294,31 @@ export async function sendSalesAutopilotReportEmail(
       </ul>
     `;
 
-  const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.pastDeadline.length;
+  const byStage = (rows: { fullName: string; email: string; stage: string }[]) => {
+    const groups = new Map<string, { fullName: string; email: string }[]>();
+    for (const r of rows) {
+      const list = groups.get(r.stage) ?? [];
+      list.push({ fullName: r.fullName, email: r.email });
+      groups.set(r.stage, list);
+    }
+    return Array.from(groups.entries())
+      .map(([stage, group]) => section(STAGE_LABEL_CZ[stage] ?? stage, group))
+      .join('');
+  };
+
+  const totalActions = result.scheduled.length + result.sent.length + result.pastDeadline.length;
 
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
-    subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.pastDeadline.length} po termínu – adressa.cz`,
+    subject: `Sales autopilot: ${result.sent.length + result.scheduled.length} osloveno, ${result.pastDeadline.length} po termínu – adressa.cz`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;">
         <h2 style="color:#111;margin-bottom:4px;">Denní report sales autopilota</h2>
         <p style="color:#777;font-size:13px;margin-bottom:8px;">adressa.cz — ${dateStr}</p>
-        <p style="color:#111;font-size:14px;">Zbývá oslovit: <strong>${result.remainingLeads}</strong> profilů</p>
-        ${section('📅 Naplánováno strategicky', result.scheduled)}
-        ${section('Nově osloveno (pitch)', result.pitched)}
-        ${section('Poslána připomínka', result.reminded)}
+        <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
+        ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
+        ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
         ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
         ${totalActions === 0
           ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}

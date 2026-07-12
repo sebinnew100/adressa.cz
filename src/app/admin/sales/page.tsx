@@ -229,18 +229,18 @@ export default function AdminSalesPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap gap-4 mb-8">
           <NextRunCountdown
-            label="Příští automatický běh (nové leady, připomínky)"
+            label="Příští automatický běh (celá sekvence 1→4)"
             hourUtc={20}
             description={
               data
-                ? `Pošle fázi 1️⃣ Úvod až 60 dosud neoslovených leadům (zbývá ~${Math.max(0, data.stats.leads - data.stats.contacted)}) a fázi 2️⃣ Čekají všem, kterým zbývají ≤2 dny do 7denního termínu. Fáze 3️⃣ a 4️⃣ se automaticky neposílají.`
+                ? `Osloví až 25 nikdy nekontaktovaných leadů fází 1️⃣ Úvod (zbývá ~${Math.max(0, data.stats.leads - data.stats.contacted)}) a posune všechny ostatní na jejich další splatnou fázi (max. 80 e-mailů/den celkem).`
                 : undefined
             }
           />
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
-          Sales autopilot běží automaticky každý den (Vercel Cron) — automaticky posílá pouze fáze <strong>1️⃣ Úvod</strong> a <strong>2️⃣ Čekají</strong>. Fáze <strong>3️⃣ Skryté</strong> a <strong>4️⃣ Follow-up</strong> jsou pouze pro ruční odeslání níže. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu.
+          Sales autopilot běží automaticky každý den (Vercel Cron) a posílá celou sekvenci sám: <strong>1️⃣ Úvod → (2 dny) → 2️⃣ Čekají → (2 dny) → 3️⃣ Skryté → (2 dny) → 4️⃣ Follow-up</strong>, a poté se <strong>3️⃣</strong> a <strong>4️⃣</strong> střídají zhruba každé 3,5 dne (~2× týdně) až do konverze nebo vyloučení (🔒). Tlačítka níže jsou pro ruční zásahy mimo pořadí. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu.
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">

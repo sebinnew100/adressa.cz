@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { sendProviderSalesPitchEmail, sendSalesAutopilotReportEmail } from '@/lib/email';
+import { sendProviderSalesPitchEmail, sendSalesAutopilotReportEmail, SalesPitchStage } from '@/lib/email';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 
 export const dynamic = 'force-dynamic';
 
-// How many new leads get their first pitch email per day. Kept small and
-// fixed (like ARTICLES_PER_RUN in publish-queued) to avoid hitting Resend's
-// rate limit and to keep a shared, low-reputation sender domain from getting
-// flagged for a sudden burst of outbound email.
-const PITCH_BATCH_SIZE = 60;
-const DEADLINE_DAYS = 7;
-const REMINDER_WINDOW_DAYS = 2;
+// Full automated cadence: intro -> waiting -> hidden -> followup, each 2 days
+// apart. Once the 4-stage sequence completes, hidden/followup alternate
+// every ~3.5 days forever (roughly "twice a week" combined) until the lead
+// converts or an admin marks them salesExempt.
+const INITIAL_STAGE_GAP_DAYS = 2;
+const STEADY_STAGE_GAP_DAYS = 3.5;
+const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "will be removed by" date shown in copy.
+
+// Conservative caps to protect a single sending domain from a rate-limit/
+// spam flag now that all 4 stages can fire automatically instead of just 2.
+// Adjust once real Resend plan limits are confirmed.
+const NEW_INTRO_DAILY_CAP = 25;
+const TOTAL_DAILY_CAP = 80;
+
+const STAGE_ORDER: SalesPitchStage[] = ['intro', 'waiting', 'hidden', 'followup'];
 
 function requireAuth(request: NextRequest): boolean {
   const auth = request.headers.get('authorization');
@@ -28,12 +36,33 @@ function names(serviceId: string, cityId: string) {
   };
 }
 
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+// Given a provider's past pitch-stage contacts, figures out which stage is
+// due next and when. Returns null for a never-contacted provider (caller
+// handles that case separately as an 'intro' candidate).
+function nextDueStage(contacts: { type: string; sentAt: Date }[]): { stage: SalesPitchStage; dueAt: Date } | null {
+  const relevant = contacts.filter(c => STAGE_ORDER.includes(c.type as SalesPitchStage));
+  if (relevant.length === 0) return null;
+  const last = [...relevant].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime())[0];
+  const hasFollowup = relevant.some(c => c.type === 'followup');
+
+  if (last.type === 'intro') return { stage: 'waiting', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
+  if (last.type === 'waiting') return { stage: 'hidden', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
+  if (last.type === 'hidden') {
+    return { stage: 'followup', dueAt: addDays(last.sentAt, hasFollowup ? STEADY_STAGE_GAP_DAYS : INITIAL_STAGE_GAP_DAYS) };
+  }
+  // last.type === 'followup'
+  return { stage: 'hidden', dueAt: addDays(last.sentAt, STEADY_STAGE_GAP_DAYS) };
+}
+
 async function sendReport(result: {
-  scheduled: { fullName: string; email: string }[];
-  pitched: { fullName: string; email: string }[];
-  reminded: { fullName: string; email: string }[];
+  scheduled: { fullName: string; email: string; stage: string }[];
+  sent: { fullName: string; email: string; stage: string }[];
   pastDeadline: { fullName: string; email: string | null }[];
-  remainingLeads: number;
+  remainingNeverContacted: number;
 }) {
   const to = process.env.AUTOPILOT_REPORT_EMAIL;
   if (!to) return;
@@ -52,12 +81,10 @@ export async function GET(request: NextRequest) {
   const now = new Date();
 
   // 0. Strategic sends the admin scheduled a specific time for — these jump
-  // the queue ahead of the generic batch. Cron only runs once a day, so
-  // "schedule a time" really means "schedule a date": anything due gets sent
-  // on the next daily run at/after that time, not at the exact minute.
-  // Automated scheduling only ever picks 'intro' (first contact) or
-  // 'waiting' (any later contact) — the 'hidden'/'followup' stages are
-  // manual-only, sent by the admin from /admin/sales for hand-picked leads.
+  // the queue ahead of everything else and are NOT counted against the daily
+  // caps below (admin picked them deliberately). Cron only runs once a day,
+  // so "schedule a time" really means "schedule a date": anything due gets
+  // sent on the next daily run at/after that time, not at the exact minute.
   const scheduledDue = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
@@ -65,12 +92,12 @@ export async function GET(request: NextRequest) {
       email: { not: null },
       scheduledSendAt: { lte: now },
     },
-    include: { salesContacts: { select: { id: true }, take: 1 } },
+    include: { salesContacts: { select: { type: true, sentAt: true } } },
   });
-  const scheduled: { fullName: string; email: string }[] = [];
+  const scheduled: { fullName: string; email: string; stage: string }[] = [];
   for (const p of scheduledDue) {
     if (!p.email) continue;
-    const stage = p.salesContacts.length > 0 ? 'waiting' : 'intro';
+    const stage: SalesPitchStage = nextDueStage(p.salesContacts)?.stage ?? 'intro';
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
@@ -85,64 +112,75 @@ export async function GET(request: NextRequest) {
             data: { scheduledSendAt: null, removalDeadline: p.removalDeadline ?? deadline },
           }),
         ]);
-        scheduled.push({ fullName: p.fullName, email: p.email });
+        scheduled.push({ fullName: p.fullName, email: p.email, stage });
       }
     } catch (err) {
       console.error('Sales autopilot scheduled send failed for', p.id, err);
     }
   }
 
-  // 1. Report-only: providers whose 7-day deadline passed without a
-  // subscription. The email tells them the listing "will be removed", but
-  // deliberately does NOT actually deactivate anyone — this is informational
-  // for the admin (who's ignoring the deadline) only, not an enforcement step.
+  // 1. Report-only: providers whose 7-day "will be removed" deadline passed.
+  // The email tells them the listing "will be removed", but deliberately
+  // does NOT actually deactivate anyone — informational for the admin only.
   const pastDeadline = await prisma.provider.findMany({
     where: { stripeSubscriptionId: null, active: true, salesExempt: false, removalDeadline: { lt: now } },
     select: { id: true, fullName: true, email: true },
   });
 
-  // 2. Remind leads whose deadline is within REMINDER_WINDOW_DAYS and haven't gotten a 'waiting' email yet.
-  const reminderCandidates = await prisma.provider.findMany({
-    where: {
-      stripeSubscriptionId: null,
-      active: true,
-      salesExempt: false,
-      email: { not: null },
-      removalDeadline: { gte: now, lte: new Date(now.getTime() + REMINDER_WINDOW_DAYS * 24 * 60 * 60 * 1000) },
-    },
-    include: { salesContacts: { where: { type: 'waiting' }, take: 1 } },
-  });
-  const reminded: { fullName: string; email: string }[] = [];
-  for (const p of reminderCandidates) {
-    if (!p.email || p.salesContacts.length > 0 || !p.removalDeadline) continue;
-    try {
-      const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
-        { stage: 'waiting', deadline: p.removalDeadline },
-      );
-      if (result.ok) {
-        await prisma.salesContact.create({ data: { providerId: p.id, type: 'waiting' } });
-        reminded.push({ fullName: p.fullName, email: p.email });
-      }
-    } catch (err) {
-      console.error('Sales autopilot reminder failed for', p.id, err);
-    }
-  }
-
-  // 3. Pitch a fresh batch of never-contacted real leads (stage 'intro').
-  const newLeads = await prisma.provider.findMany({
+  // 2. Everyone else: figure out who's due for their next stage today, and
+  // who's never been contacted at all (eligible for 'intro').
+  const allLeads = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
       address: { not: null },
       email: { not: null },
       salesExempt: false,
-      salesContacts: { none: {} },
     },
-    orderBy: { createdAt: 'asc' },
-    take: PITCH_BATCH_SIZE,
+    select: {
+      id: true, fullName: true, email: true, serviceId: true, cityId: true,
+      description: true, picturePath: true, removalDeadline: true, createdAt: true,
+      salesContacts: { where: { type: { in: STAGE_ORDER } }, select: { type: true, sentAt: true } },
+    },
   });
-  const pitched: { fullName: string; email: string }[] = [];
-  for (const p of newLeads) {
+
+  const neverContacted = allLeads
+    .filter(p => p.salesContacts.length === 0)
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  const dueAdvances: { provider: typeof allLeads[number]; stage: SalesPitchStage; dueAt: Date }[] = [];
+  for (const p of allLeads) {
+    if (p.salesContacts.length === 0) continue;
+    const next = nextDueStage(p.salesContacts);
+    if (next && next.dueAt <= now) dueAdvances.push({ provider: p, stage: next.stage, dueAt: next.dueAt });
+  }
+  dueAdvances.sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime()); // most-overdue first
+
+  const sent: { fullName: string; email: string; stage: string }[] = [];
+  let sentCount = 0;
+
+  for (const { provider: p, stage } of dueAdvances) {
+    if (sentCount >= TOTAL_DAILY_CAP || !p.email) continue;
+    const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    try {
+      const result = await sendProviderSalesPitchEmail(
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
+        { stage, deadline },
+      );
+      if (result.ok) {
+        await prisma.$transaction([
+          prisma.salesContact.create({ data: { providerId: p.id, type: stage } }),
+          ...(p.removalDeadline ? [] : [prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } })]),
+        ]);
+        sent.push({ fullName: p.fullName, email: p.email, stage });
+        sentCount++;
+      }
+    } catch (err) {
+      console.error('Sales autopilot stage-advance send failed for', p.id, err);
+    }
+  }
+
+  const introBudget = Math.max(0, Math.min(NEW_INTRO_DAILY_CAP, TOTAL_DAILY_CAP - sentCount));
+  for (const p of neverContacted.slice(0, introBudget)) {
     if (!p.email) continue;
     const deadline = new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
@@ -155,29 +193,19 @@ export async function GET(request: NextRequest) {
           prisma.salesContact.create({ data: { providerId: p.id, type: 'intro' } }),
           prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } }),
         ]);
-        pitched.push({ fullName: p.fullName, email: p.email });
+        sent.push({ fullName: p.fullName, email: p.email, stage: 'intro' });
+        sentCount++;
       }
     } catch (err) {
-      console.error('Sales autopilot pitch failed for', p.id, err);
+      console.error('Sales autopilot intro send failed for', p.id, err);
     }
   }
 
-  const remainingLeads = await prisma.provider.count({
-    where: {
-      stripeSubscriptionId: null,
-      address: { not: null },
-      email: { not: null },
-      salesExempt: false,
-      salesContacts: { none: {} },
-    },
-  });
-
   const result = {
     scheduled,
-    pitched,
-    reminded,
+    sent,
     pastDeadline: pastDeadline.map(p => ({ fullName: p.fullName, email: p.email })),
-    remainingLeads,
+    remainingNeverContacted: neverContacted.length,
   };
 
   await sendReport(result);
