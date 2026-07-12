@@ -28,8 +28,8 @@ export default function PaymentSuccessPage() {
           </p>
           <p className="text-ink-lighter text-xs mb-8">
             {language === 'cs'
-              ? 'Poté se z vaší karty automaticky strhne 299 Kč měsíčně, dokud předplatné nezrušíte. Potvrzení obdržíte na e-mail.'
-              : 'After that, 299 CZK/month will be automatically charged to your card until you cancel. A confirmation has been sent to your email.'}
+              ? 'Poté se z vaší karty automaticky strhne 299 Kč každých 28 dní, dokud předplatné nezrušíte. Potvrzení obdržíte na e-mail.'
+              : 'After that, 299 CZK will be automatically charged to your card every 28 days, until you cancel. A confirmation has been sent to your email.'}
           </p>
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">

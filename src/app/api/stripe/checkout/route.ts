@@ -33,12 +33,13 @@ export async function POST(request: NextRequest) {
         },
         {
           // Recurring subscription, trial delays the first charge by TRIAL_DAYS.
+          // Fixed 28-day cycle (4 weeks), not calendar-month billing.
           price_data: {
             currency: 'czk',
             unit_amount: MONTHLY_PRICE_CZK,
-            recurring: { interval: 'month' },
+            recurring: { interval: 'week', interval_count: 4 },
             product_data: {
-              name: 'adressa.cz — Měsíční inzerce profilu',
+              name: 'adressa.cz — Inzerce profilu (každých 28 dní)',
               description: `Profil: ${provider.fullName}`,
             },
           },
