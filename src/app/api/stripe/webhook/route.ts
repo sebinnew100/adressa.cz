@@ -45,11 +45,14 @@ export async function POST(request: NextRequest) {
           return end && (!latest || end > latest) ? end : latest;
         }, null);
         const paidUntil = periodEndUnix ? new Date(periodEndUnix * 1000) : undefined;
+        // Don't touch subscriptionStatus here — this fires for the immediate
+        // one-time activation fee too, while the subscription itself may
+        // still genuinely be 'trialing'. customer.subscription.updated is
+        // the source of truth for status; this handler only tracks payment.
         await prisma.provider.updateMany({
           where: { stripeSubscriptionId: subscriptionId },
           data: {
             active: true,
-            subscriptionStatus: 'active',
             ...(paidUntil && { paidUntil }),
           },
         });
