@@ -40,15 +40,8 @@ interface Lead {
   lastContactedType: string | null;
 }
 
-interface SendHistoryDay {
-  date: string;
-  byType: Record<string, number>;
-  total: number;
-}
-
 interface SalesData {
   leads: Lead[];
-  sendHistory: SendHistoryDay[];
   stats: {
     totalProviders: number;
     subscribed: number;
@@ -283,37 +276,12 @@ export default function AdminSalesPage() {
           ))}
         </div>
 
-        {data && data.sendHistory.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-gray-800">
-              <h3 className="font-bold text-sm">📊 Historie odesílání podle data</h3>
-            </div>
-            <div className="overflow-x-auto max-h-64 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-gray-900">
-                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                    <th className="text-left px-6 py-2">Datum</th>
-                    <th className="text-left px-6 py-2">Rozpis podle fáze</th>
-                    <th className="text-center px-6 py-2">Celkem</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {data.sendHistory.map(d => (
-                    <tr key={d.date}>
-                      <td className="px-6 py-2 text-gray-300">{new Date(d.date).toLocaleDateString('cs-CZ')}</td>
-                      <td className="px-6 py-2 text-gray-400 text-xs">
-                        {Object.entries(d.byType).map(([type, count]) => (
-                          <span key={type} className="mr-3">{STAGE_LABEL_LONG[type] ?? type}: {count}</span>
-                        ))}
-                      </td>
-                      <td className="px-6 py-2 text-center font-bold text-white">{d.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <Link
+          href="/admin/sales/history"
+          className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white text-sm font-semibold px-5 py-3 rounded-xl transition-colors mb-8"
+        >
+          📊 Zobrazit historii odesílání — kdo, kdy, jaká fáze a stav →
+        </Link>
 
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <input

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const now = new Date();
-    const [leads, subscribedCount, totalCount, manuallyDeactivatedCount, allContacts] = await Promise.all([
+    const [leads, subscribedCount, totalCount, manuallyDeactivatedCount] = await Promise.all([
       prisma.provider.findMany({
         where: LEAD_WHERE,
         orderBy: [{ removalDeadline: 'asc' }, { createdAt: 'desc' }],
@@ -32,23 +32,7 @@ export async function GET(request: NextRequest) {
       // The cron never auto-deactivates leads (deadline is messaging only,
       // not enforced) — this can only be non-zero from a manual admin toggle.
       prisma.provider.count({ where: { ...LEAD_WHERE, active: false, removalDeadline: { not: null } } }),
-      prisma.salesContact.findMany({ select: { sentAt: true, type: true }, orderBy: { sentAt: 'desc' } }),
     ]);
-
-    const byDay = new Map<string, Record<string, number>>();
-    for (const c of allContacts) {
-      const day = c.sentAt.toISOString().slice(0, 10);
-      const entry = byDay.get(day) ?? {};
-      entry[c.type] = (entry[c.type] ?? 0) + 1;
-      byDay.set(day, entry);
-    }
-    const sendHistory = Array.from(byDay.entries())
-      .map(([date, byType]) => ({
-        date,
-        byType,
-        total: Object.values(byType).reduce((sum, n) => sum + n, 0),
-      }))
-      .sort((a, b) => b.date.localeCompare(a.date));
 
     const withStats = leads.map(({ salesContacts, ...p }) => ({
       ...p,
@@ -64,7 +48,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       leads: withStats,
-      sendHistory,
       stats: {
         totalProviders: totalCount,
         subscribed: subscribedCount,
