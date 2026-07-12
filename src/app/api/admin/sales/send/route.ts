@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     include: { salesContacts: { select: { id: true }, take: 1 } },
   });
 
-  const results: { providerId: string; status: 'sent' | 'skipped_no_email' | 'failed' }[] = [];
+  const results: { providerId: string; status: 'sent' | 'skipped_no_email' | 'failed'; error?: string }[] = [];
 
   for (const provider of providers) {
     if (!provider.email) {
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
     const isReminder = provider.salesContacts.length > 0;
     const deadline = provider.removalDeadline ?? new Date(Date.now() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
-      const sent = await sendProviderSalesPitchEmail(
+      const result = await sendProviderSalesPitchEmail(
         { id: provider.id, fullName: provider.fullName, email: provider.email },
         { isReminder, deadline },
       );
-      if (!sent) {
-        results.push({ providerId: provider.id, status: 'failed' });
+      if (!result.ok) {
+        results.push({ providerId: provider.id, status: 'failed', error: result.error });
         continue;
       }
       await prisma.$transaction([
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
         ]),
       ]);
       results.push({ providerId: provider.id, status: 'sent' });
-    } catch {
-      results.push({ providerId: provider.id, status: 'failed' });
+    } catch (err) {
+      results.push({ providerId: provider.id, status: 'failed', error: err instanceof Error ? err.message : String(err) });
     }
   }
 

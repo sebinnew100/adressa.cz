@@ -61,11 +61,11 @@ export async function GET(request: NextRequest) {
     const isReminder = p.salesContacts.length > 0;
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
-      const sent = await sendProviderSalesPitchEmail(
+      const result = await sendProviderSalesPitchEmail(
         { id: p.id, fullName: p.fullName, email: p.email },
         { isReminder, deadline },
       );
-      if (sent) {
+      if (result.ok) {
         await prisma.$transaction([
           prisma.salesContact.create({ data: { providerId: p.id, type: isReminder ? 'reminder' : 'pitch' } }),
           prisma.provider.update({
@@ -107,11 +107,11 @@ export async function GET(request: NextRequest) {
   for (const p of reminderCandidates) {
     if (!p.email || p.salesContacts.length > 0 || !p.removalDeadline) continue;
     try {
-      const sent = await sendProviderSalesPitchEmail(
+      const result = await sendProviderSalesPitchEmail(
         { id: p.id, fullName: p.fullName, email: p.email },
         { isReminder: true, deadline: p.removalDeadline },
       );
-      if (sent) {
+      if (result.ok) {
         await prisma.salesContact.create({ data: { providerId: p.id, type: 'reminder' } });
         reminded.push({ fullName: p.fullName, email: p.email });
       }
@@ -137,11 +137,11 @@ export async function GET(request: NextRequest) {
     if (!p.email) continue;
     const deadline = new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
-      const sent = await sendProviderSalesPitchEmail(
+      const result = await sendProviderSalesPitchEmail(
         { id: p.id, fullName: p.fullName, email: p.email },
         { isReminder: false, deadline },
       );
-      if (sent) {
+      if (result.ok) {
         await prisma.$transaction([
           prisma.salesContact.create({ data: { providerId: p.id, type: 'pitch' } }),
           prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } }),

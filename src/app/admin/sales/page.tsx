@@ -123,9 +123,17 @@ export default function AdminSalesPage() {
     });
     const json = await res.json();
     if (res.ok) {
-      const sent = json.results.filter((r: { status: string }) => r.status === 'sent').length;
-      const failed = json.results.filter((r: { status: string }) => r.status !== 'sent').length;
-      setLastResult(`Odesláno: ${sent}${failed ? `, selhalo: ${failed}` : ''}`);
+      type Result = { status: string; error?: string };
+      const results: Result[] = json.results;
+      const sent = results.filter(r => r.status === 'sent').length;
+      const failed = results.filter(r => r.status === 'failed');
+      const skipped = results.filter(r => r.status === 'skipped_no_email').length;
+      const uniqueErrors = Array.from(new Set(failed.map(r => r.error).filter(Boolean)));
+      let msg = `Odesláno: ${sent}`;
+      if (failed.length) msg += `, selhalo: ${failed.length}`;
+      if (skipped) msg += `, bez e-mailu: ${skipped}`;
+      if (uniqueErrors.length) msg += ` — chyba: ${uniqueErrors.join(' | ')}`;
+      setLastResult(msg);
       setSelected(new Set());
       await fetchLeads();
     } else {
@@ -264,7 +272,7 @@ export default function AdminSalesPage() {
           >
             {sending ? 'Odesílám…' : `Odeslat všem neoslovením ve filtru (${uncontactedIds.length})`}
           </button>
-          {lastResult && <span className="text-sm text-gray-400">{lastResult}</span>}
+          {lastResult && <span className="text-sm text-gray-400 break-words">{lastResult}</span>}
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">

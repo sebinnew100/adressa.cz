@@ -104,9 +104,9 @@ export async function sendAutopilotReportEmail(
 export async function sendProviderSalesPitchEmail(
   provider: { id: string; fullName: string; email: string },
   opts: { isReminder: boolean; deadline: Date },
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
-  if (!resend) return false;
+  if (!resend) return { ok: false, error: 'RESEND_API_KEY not configured' };
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
   const activateUrl = `${baseUrl}/aktivovat/${provider.id}`;
@@ -149,9 +149,9 @@ export async function sendProviderSalesPitchEmail(
 
   if (error) {
     console.error('sendProviderSalesPitchEmail failed:', provider.email, error);
-    return false;
+    return { ok: false, error: error.message ?? JSON.stringify(error) };
   }
-  return true;
+  return { ok: true };
 }
 
 export async function sendSalesAutopilotReportEmail(
