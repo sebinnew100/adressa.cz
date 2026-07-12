@@ -142,9 +142,8 @@ export async function sendProviderSalesPitchEmail(
 
   const pricingList = `
     <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-      <li>15 Kč aktivační poplatek (jednorázově)</li>
+      <li>Spuštění profilu jen za <strong>15 Kč</strong></li>
       <li>7 dní zdarma na vyzkoušení</li>
-      <li>poté 299 Kč každých 28 dní, kdykoliv zrušitelné</li>
     </ul>
   `;
 
