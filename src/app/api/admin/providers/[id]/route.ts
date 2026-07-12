@@ -63,6 +63,7 @@ export async function PATCH(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = {};
     if ('featured' in body) data.featured = Boolean(body.featured);
+    if ('salesExempt' in body) data.salesExempt = Boolean(body.salesExempt);
     if ('active' in body) {
       data.active = Boolean(body.active);
       if (data.active) {

@@ -5,6 +5,8 @@ import { sendProviderSalesPitchEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
+const DEADLINE_DAYS = 7;
+
 function requireAdmin(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   return token === getExpectedToken();
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const providers = await prisma.provider.findMany({
-    where: { id: { in: providerIds }, active: false },
+    where: { id: { in: providerIds }, stripeSubscriptionId: null },
     include: { salesContacts: { select: { id: true }, take: 1 } },
   });
 
@@ -33,18 +35,24 @@ export async function POST(request: NextRequest) {
       continue;
     }
     const isReminder = provider.salesContacts.length > 0;
+    const deadline = provider.removalDeadline ?? new Date(Date.now() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const sent = await sendProviderSalesPitchEmail(
         { id: provider.id, fullName: provider.fullName, email: provider.email },
-        { isReminder },
+        { isReminder, deadline },
       );
       if (!sent) {
         results.push({ providerId: provider.id, status: 'failed' });
         continue;
       }
-      await prisma.salesContact.create({
-        data: { providerId: provider.id, type: isReminder ? 'reminder' : 'pitch' },
-      });
+      await prisma.$transaction([
+        prisma.salesContact.create({
+          data: { providerId: provider.id, type: isReminder ? 'reminder' : 'pitch' },
+        }),
+        ...(provider.removalDeadline ? [] : [
+          prisma.provider.update({ where: { id: provider.id }, data: { removalDeadline: deadline } }),
+        ]),
+      ]);
       results.push({ providerId: provider.id, status: 'sent' });
     } catch {
       results.push({ providerId: provider.id, status: 'failed' });

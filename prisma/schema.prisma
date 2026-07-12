@@ -26,6 +26,8 @@ model Provider {
   stripeCustomerId     String? @unique
   stripeSubscriptionId String? @unique
   subscriptionStatus   String?
+  removalDeadline DateTime?
+  salesExempt     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reviews      Review[]

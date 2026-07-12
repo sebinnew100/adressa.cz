@@ -12,6 +12,10 @@ interface Lead {
   phone: string | null;
   serviceId: string;
   cityId: string;
+  active: boolean;
+  salesExempt: boolean;
+  removalDeadline: string | null;
+  daysLeft: number | null;
   createdAt: string;
   contactCount: number;
   lastContactedAt: string | null;
@@ -19,7 +23,14 @@ interface Lead {
 
 interface SalesData {
   leads: Lead[];
-  stats: { totalProviders: number; subscribed: number; leads: number; contacted: number };
+  stats: {
+    totalProviders: number;
+    subscribed: number;
+    leads: number;
+    contacted: number;
+    atRisk: number;
+    removedByCampaign: number;
+  };
 }
 
 export default function AdminSalesPage() {
@@ -28,6 +39,8 @@ export default function AdminSalesPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [exemptingId, setExemptingId] = useState<string | null>(null);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -42,9 +55,16 @@ export default function AdminSalesPage() {
   }, []);
 
   const leadsWithEmail = useMemo(() => (data?.leads ?? []).filter(l => l.email), [data]);
+  const filtered = useMemo(
+    () => leadsWithEmail.filter(l =>
+      l.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      (l.email ?? '').toLowerCase().includes(search.toLowerCase())
+    ),
+    [leadsWithEmail, search],
+  );
   const uncontactedIds = useMemo(
-    () => leadsWithEmail.filter(l => l.contactCount === 0).map(l => l.id),
-    [leadsWithEmail],
+    () => filtered.filter(l => l.contactCount === 0).map(l => l.id),
+    [filtered],
   );
 
   const toggleOne = (id: string) => {
@@ -58,7 +78,7 @@ export default function AdminSalesPage() {
 
   const toggleAll = () => {
     setSelected(prev =>
-      prev.size === leadsWithEmail.length ? new Set() : new Set(leadsWithEmail.map(l => l.id))
+      prev.size === filtered.length ? new Set() : new Set(filtered.map(l => l.id))
     );
   };
 
@@ -84,6 +104,19 @@ export default function AdminSalesPage() {
     setSending(false);
   };
 
+  const toggleExempt = async (id: string, current: boolean) => {
+    setExemptingId(id);
+    const res = await fetch(`/api/admin/providers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ salesExempt: !current }),
+    });
+    if (res.ok && data) {
+      setData({ ...data, leads: data.leads.map(l => l.id === id ? { ...l, salesExempt: !current } : l) });
+    }
+    setExemptingId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
@@ -100,21 +133,34 @@ export default function AdminSalesPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
+          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem a odstraní profily, kterým vypršela 7denní lhůta bez předplatného. Tato stránka je pro ruční zásahy a přehled.
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
             { label: 'Celkem profilů', value: data?.stats.totalProviders ?? '—' },
             { label: 'Předplácí', value: data?.stats.subscribed ?? '—' },
-            { label: 'Nekonvertovaní (leads)', value: data?.stats.leads ?? '—' },
+            { label: 'Leads', value: data?.stats.leads ?? '—' },
             { label: 'Již oslovení', value: data?.stats.contacted ?? '—' },
+            { label: 'Ohroženo dnes', value: data?.stats.atRisk ?? '—' },
+            { label: 'Odstraněno kampaní', value: data?.stats.removedByCampaign ?? '—' },
           ].map(s => (
-            <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <div className="text-3xl font-bold text-white">{s.value}</div>
-              <div className="text-gray-400 text-sm mt-1">{s.label}</div>
+            <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div className="text-2xl font-bold text-white">{s.value}</div>
+              <div className="text-gray-400 text-xs mt-1">{s.label}</div>
             </div>
           ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-6">
+          <input
+            type="text"
+            placeholder="Hledat podle jména nebo e-mailu..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
+          />
           <button
             onClick={() => sendTo(Array.from(selected))}
             disabled={selected.size === 0 || sending}
@@ -127,41 +173,43 @@ export default function AdminSalesPage() {
             disabled={uncontactedIds.length === 0 || sending}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
           >
-            {sending ? 'Odesílám…' : `Odeslat všem neoslovením (${uncontactedIds.length})`}
+            {sending ? 'Odesílám…' : `Odeslat všem neoslovením ve filtru (${uncontactedIds.length})`}
           </button>
           {lastResult && <span className="text-sm text-gray-400">{lastResult}</span>}
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-800">
-            <h2 className="font-bold text-lg">Nekonvertovaní poskytovatelé ({leadsWithEmail.length} s e-mailem)</h2>
+            <h2 className="font-bold text-lg">Nekonvertovaní poskytovatelé ({filtered.length} z {leadsWithEmail.length} s e-mailem)</h2>
           </div>
           {loading ? (
             <div className="text-center py-16 text-gray-500">Načítám...</div>
-          ) : leadsWithEmail.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">Žádní leadi s e-mailem — všichni jsou buď aktivní, nebo bez kontaktu.</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">Žádní leadi neodpovídají filtru.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-gray-900 z-10">
                   <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
                     <th className="text-left px-6 py-3">
-                      <input type="checkbox" checked={selected.size === leadsWithEmail.length} onChange={toggleAll} />
+                      <input type="checkbox" checked={selected.size === filtered.length} onChange={toggleAll} />
                     </th>
                     <th className="text-left px-6 py-3">Profil</th>
                     <th className="text-left px-6 py-3">Služba</th>
                     <th className="text-left px-6 py-3">Město</th>
                     <th className="text-left px-6 py-3">E-mail</th>
+                    <th className="text-center px-6 py-3">Stav</th>
                     <th className="text-center px-6 py-3">Kontaktováno</th>
+                    <th className="text-center px-6 py-3">Vyloučit</th>
                     <th className="text-right px-6 py-3">Akce</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
-                  {leadsWithEmail.map(lead => {
+                  {filtered.slice(0, 500).map(lead => {
                     const service = SERVICES.find(s => s.id === lead.serviceId);
                     const city = CITIES.find(c => c.id === lead.cityId);
                     return (
-                      <tr key={lead.id} className="hover:bg-gray-800/50 transition-colors">
+                      <tr key={lead.id} className={`hover:bg-gray-800/50 transition-colors ${lead.salesExempt ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4">
                           <input type="checkbox" checked={selected.has(lead.id)} onChange={() => toggleOne(lead.id)} />
                         </td>
@@ -173,6 +221,21 @@ export default function AdminSalesPage() {
                         <td className="px-6 py-4 text-gray-300">{city ? city.nameCz : lead.cityId}</td>
                         <td className="px-6 py-4 text-gray-300 text-xs">{lead.email}</td>
                         <td className="px-6 py-4 text-center">
+                          {!lead.active ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400">
+                              Odstraněno
+                            </span>
+                          ) : lead.daysLeft === null ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-700 text-gray-400">
+                              Živě
+                            </span>
+                          ) : (
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${lead.daysLeft <= 2 ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                              {lead.daysLeft > 0 ? `${lead.daysLeft} dní` : 'Po termínu'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
                           {lead.contactCount === 0 ? (
                             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400">
                               Nikdy
@@ -182,6 +245,20 @@ export default function AdminSalesPage() {
                               {lead.contactCount}× · {lead.lastContactedAt && new Date(lead.lastContactedAt).toLocaleDateString('cs-CZ')}
                             </span>
                           )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => toggleExempt(lead.id, lead.salesExempt)}
+                            disabled={exemptingId === lead.id}
+                            title="Vyloučit z kampaně (autopilot tento profil neosloví ani neodstraní)"
+                            className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition-all ${
+                              lead.salesExempt
+                                ? 'bg-gray-600 text-white'
+                                : 'bg-gray-800 text-gray-600 hover:bg-gray-700 hover:text-gray-300'
+                            }`}
+                          >
+                            {lead.salesExempt ? '🔒' : '🔓'}
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button
@@ -197,6 +274,11 @@ export default function AdminSalesPage() {
                   })}
                 </tbody>
               </table>
+              {filtered.length > 500 && (
+                <div className="text-center py-4 text-gray-500 text-xs">
+                  Zobrazeno prvních 500 z {filtered.length} — zúžte hledání pro zobrazení dalších.
+                </div>
+              )}
             </div>
           )}
         </div>

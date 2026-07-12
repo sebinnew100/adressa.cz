@@ -11,6 +11,8 @@ interface ProviderInfo {
   id: string;
   fullName: string;
   active: boolean;
+  stripeSubscriptionId: string | null;
+  removalDeadline: string | null;
 }
 
 export default function ActivateProviderPage() {
@@ -53,6 +55,10 @@ export default function ActivateProviderPage() {
     }
   };
 
+  const daysLeft = provider?.removalDeadline
+    ? Math.ceil((new Date(provider.removalDeadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -71,15 +77,15 @@ export default function ActivateProviderPage() {
                 {language === 'cs' ? 'Vytvořit nový profil' : 'Create a new profile'}
               </Link>
             </>
-          ) : provider.active ? (
+          ) : provider.stripeSubscriptionId ? (
             <>
               <h1 className="text-xl font-bold text-ink mb-2">
-                {language === 'cs' ? 'Profil je již aktivní' : 'Profile is already active'}
+                {language === 'cs' ? 'Předplatné je již aktivní' : 'Subscription is already active'}
               </h1>
               <p className="text-ink-light text-sm mb-6">
                 {language === 'cs'
-                  ? `${provider.fullName} je již viditelný pro zákazníky.`
-                  : `${provider.fullName} is already visible to customers.`}
+                  ? `Děkujeme, ${provider.fullName} má aktivní předplatné a je viditelný pro zákazníky.`
+                  : `Thanks, ${provider.fullName} has an active subscription and is visible to customers.`}
               </p>
               <Link
                 href="/providers"
@@ -91,14 +97,31 @@ export default function ActivateProviderPage() {
           ) : (
             <>
               <h1 className="text-2xl font-bold text-ink mb-2">
-                {language === 'cs' ? 'Dokončete aktivaci profilu' : 'Complete your profile activation'}
+                {provider.active
+                  ? (language === 'cs' ? 'Potvrďte předplatné a ponechte si profil' : 'Confirm your subscription to keep your profile')
+                  : (language === 'cs' ? 'Znovu zveřejněte svůj profil' : 'Publish your profile again')}
               </h1>
-              <p className="text-ink-light text-sm mb-6">
-                {language === 'cs'
-                  ? `${provider.fullName}, aktivujte svůj profil a začněte získávat nové zákazníky přes adressa.cz.`
-                  : `${provider.fullName}, activate your profile and start getting new customers through adressa.cz.`}
+              <p className="text-ink-light text-sm mb-2">
+                {provider.active
+                  ? (language === 'cs'
+                      ? `${provider.fullName}, váš profil je nyní viditelný zdarma na adressa.cz.`
+                      : `${provider.fullName}, your profile is currently visible for free on adressa.cz.`)
+                  : (language === 'cs'
+                      ? `${provider.fullName}, váš profil byl z webu odstraněn, protože nebylo potvrzeno předplatné.`
+                      : `${provider.fullName}, your profile was removed from the site because no subscription was confirmed.`)}
               </p>
-              <ul className="text-left text-sm text-ink-light mb-8 space-y-1.5 bg-gray-50 rounded-xl p-4">
+              {provider.active && daysLeft !== null && (
+                <p className={`text-sm font-semibold mb-6 ${daysLeft <= 2 ? 'text-red-500' : 'text-amber-600'}`}>
+                  {language === 'cs'
+                    ? daysLeft > 0
+                      ? `Zbývá ${daysLeft} ${daysLeft === 1 ? 'den' : daysLeft < 5 ? 'dny' : 'dní'}, jinak bude profil odstraněn.`
+                      : 'Termín vypršel — profil bude brzy odstraněn.'
+                    : daysLeft > 0
+                      ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left, or your profile will be removed.`
+                      : 'Deadline passed — your profile will be removed soon.'}
+                </p>
+              )}
+              <ul className="text-left text-sm text-ink-light mb-8 space-y-1.5 bg-gray-50 rounded-xl p-4 mt-4">
                 <li>
                   {language === 'cs' ? '• 15 Kč aktivační poplatek (jednorázově)' : '• 15 CZK one-time activation fee'}
                 </li>
@@ -121,7 +144,7 @@ export default function ActivateProviderPage() {
               >
                 {starting
                   ? (language === 'cs' ? 'Přesměrovávám…' : 'Redirecting…')
-                  : (language === 'cs' ? 'Aktivovat profil' : 'Activate profile')}
+                  : (language === 'cs' ? 'Potvrdit předplatné' : 'Confirm subscription')}
               </button>
             </>
           )}
