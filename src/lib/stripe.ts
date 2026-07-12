@@ -12,5 +12,5 @@ export function getStripe(): Stripe {
 }
 
 export const MONTHLY_PRICE_CZK = 29900; // 299.00 CZK in haléře
-export const TRIAL_ACTIVATION_FEE_CZK = 1000; // 10.00 CZK in haléře, one-time, charged immediately
+export const TRIAL_ACTIVATION_FEE_CZK = 1500; // 15.00 CZK in haléře, one-time, charged immediately (Stripe's minimum charge in CZK)
 export const TRIAL_DAYS = 7;

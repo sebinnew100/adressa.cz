@@ -23,8 +23,8 @@ export default function PaymentSuccessPage() {
           </h1>
           <p className="text-ink-light text-sm mb-2">
             {language === 'cs'
-              ? 'Váš profil je nyní aktivní. Aktivační poplatek 10 Kč byl právě stržen a příštích 7 dní je součástí zkušebního období.'
-              : 'Your profile is now active. A 10 CZK activation fee was just charged, and the next 7 days are your trial period.'}
+              ? 'Váš profil je nyní aktivní. Aktivační poplatek 15 Kč byl právě stržen a příštích 7 dní je součástí zkušebního období.'
+              : 'Your profile is now active. A 15 CZK activation fee was just charged, and the next 7 days are your trial period.'}
           </p>
           <p className="text-ink-lighter text-xs mb-8">
             {language === 'cs'
