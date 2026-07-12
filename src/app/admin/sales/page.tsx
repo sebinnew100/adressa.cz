@@ -228,7 +228,15 @@ export default function AdminSalesPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap gap-4 mb-8">
-          <NextRunCountdown label="Příští automatický běh (nové leady, připomínky)" hourUtc={20} />
+          <NextRunCountdown
+            label="Příští automatický běh (nové leady, připomínky)"
+            hourUtc={20}
+            description={
+              data
+                ? `Pošle fázi 1️⃣ Úvod až 60 dosud neoslovených leadům (zbývá ~${Math.max(0, data.stats.leads - data.stats.contacted)}) a fázi 2️⃣ Čekají všem, kterým zbývají ≤2 dny do 7denního termínu. Fáze 3️⃣ a 4️⃣ se automaticky neposílají.`
+                : undefined
+            }
+          />
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">

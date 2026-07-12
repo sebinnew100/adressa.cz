@@ -70,7 +70,15 @@ export default function AdminArticlesPage() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="mb-6">
-          <NextRunCountdown label="Příští automatické publikování (autopilot)" hourUtc={22} />
+          <NextRunCountdown
+            label="Příští automatické publikování (autopilot)"
+            hourUtc={22}
+            description={
+              loading
+                ? undefined
+                : `Publikuje až 2 další články z fronty (aktuálně čeká ${articles.filter(a => !a.published).length}), dokud celkem nedosáhne 119 publikovaných (nyní ${articles.filter(a => a.published).length}).`
+            }
+          />
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           {loading ? (
