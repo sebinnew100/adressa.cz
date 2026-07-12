@@ -254,6 +254,7 @@ export async function sendProviderSalesPitchEmail(
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to: provider.email,
+    replyTo: 'customerserviceentfin@gmail.com',
     subject,
     html,
   });
