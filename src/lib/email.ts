@@ -22,7 +22,7 @@ export async function sendAppointmentEmail(
   const resend = getResend();
   if (!resend) return false;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to: providerEmail,
     subject: `Nová poptávka od ${appt.customerName} – adressa.cz`,
@@ -42,6 +42,10 @@ export async function sendAppointmentEmail(
     `,
   });
 
+  if (error) {
+    console.error('sendAppointmentEmail failed:', providerEmail, error);
+    return false;
+  }
   return true;
 }
 
@@ -69,7 +73,7 @@ export async function sendAutopilotReportEmail(
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to,
     subject: result.published.length > 0
@@ -90,6 +94,10 @@ export async function sendAutopilotReportEmail(
     `,
   });
 
+  if (error) {
+    console.error('sendAutopilotReportEmail failed:', to, error);
+    return false;
+  }
   return true;
 }
 
@@ -113,7 +121,7 @@ export async function sendProviderSalesPitchEmail(
     ? `Připomínáme, že profil <strong>${provider.fullName}</strong> je na adressa.cz stále bez potvrzeného předplatného. Pokud předplatné nezaložíte do <strong>${deadlineStr}</strong>, profil bude z webu odstraněn.`
     : `Váš profil <strong>${provider.fullName}</strong> jsme na adressa.cz vytvořili a je nyní veřejně vidět — zákazníci si ho mohou najít a kontaktovat vás. Aby zůstal na webu i nadále, je potřeba do <strong>${deadlineStr}</strong> (7 dní) potvrdit předplatné.`;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to: provider.email,
     subject,
@@ -139,6 +147,10 @@ export async function sendProviderSalesPitchEmail(
     `,
   });
 
+  if (error) {
+    console.error('sendProviderSalesPitchEmail failed:', provider.email, error);
+    return false;
+  }
   return true;
 }
 
@@ -167,7 +179,7 @@ export async function sendSalesAutopilotReportEmail(
 
   const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.removed.length;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to,
     subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.removed.length} odebráno – adressa.cz`,
@@ -189,6 +201,10 @@ export async function sendSalesAutopilotReportEmail(
     `,
   });
 
+  if (error) {
+    console.error('sendSalesAutopilotReportEmail failed:', to, error);
+    return false;
+  }
   return true;
 }
 
@@ -203,7 +219,7 @@ export async function sendVerificationEmail(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
   const verifyUrl = `${baseUrl}/api/verify-email?token=${token}`;
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: 'adressa.cz <onboarding@resend.dev>',
     to: email,
     subject: 'Ověřte svůj e-mail / Verify your email – adressa.cz',
@@ -225,5 +241,9 @@ export async function sendVerificationEmail(
     `,
   });
 
+  if (error) {
+    console.error('sendVerificationEmail failed:', email, error);
+    return false;
+  }
   return true;
 }

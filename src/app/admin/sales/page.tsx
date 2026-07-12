@@ -46,6 +46,31 @@ export default function AdminSalesPage() {
   const [exemptingId, setExemptingId] = useState<string | null>(null);
   const [schedulingId, setSchedulingId] = useState<string | null>(null);
   const [scheduleDraft, setScheduleDraft] = useState<Record<string, string>>({});
+  const [testEmailAddr, setTestEmailAddr] = useState('');
+  const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
+  const [testingEmail, setTestingEmail] = useState(false);
+
+  const runTestEmail = async () => {
+    if (!testEmailAddr) return;
+    setTestingEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: testEmailAddr }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setTestEmailResult(`✅ Odesláno bez chyby (Resend id: ${json.data?.id ?? '—'}). Zkontrolujte doručenou/spam schránku.`);
+      } else {
+        setTestEmailResult(`❌ Chyba od Resend: ${json.error?.message ?? json.reason ?? JSON.stringify(json.error ?? json)}`);
+      }
+    } catch {
+      setTestEmailResult('❌ Požadavek selhal.');
+    }
+    setTestingEmail(false);
+  };
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -174,6 +199,30 @@ export default function AdminSalesPage() {
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
           Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem, odešle naplánované strategické pitche a odstraní profily, kterým vypršela 7denní lhůta bez předplatného. Naplánovaný čas níže je datum — e-mail odejde v rámci nejbližšího denního běhu po tomto čase, ne přesně v danou minutu.
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">
+          <h3 className="text-sm font-bold text-white mb-2">📧 Test doručování e-mailů</h3>
+          <p className="text-xs text-gray-400 mb-3">
+            Pošlete testovací e-mail na libovolnou adresu a uvidíte přesnou chybu od Resend, pokud doručení selže.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="email"
+              placeholder="test@example.com"
+              value={testEmailAddr}
+              onChange={e => setTestEmailAddr(e.target.value)}
+              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
+            />
+            <button
+              onClick={runTestEmail}
+              disabled={!testEmailAddr || testingEmail}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {testingEmail ? 'Odesílám…' : 'Odeslat test'}
+            </button>
+          </div>
+          {testEmailResult && <p className="text-xs text-gray-300 mt-3 break-words">{testEmailResult}</p>}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
