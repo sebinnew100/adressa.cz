@@ -23,7 +23,7 @@ export async function sendAppointmentEmail(
   if (!resend) return false;
 
   const { error } = await resend.emails.send({
-    from: 'adressa.cz <onboarding@resend.dev>',
+    from: 'adressa.cz <noreply@adressa.cz>',
     to: providerEmail,
     subject: `Nová poptávka od ${appt.customerName} – adressa.cz`,
     html: `
@@ -74,7 +74,7 @@ export async function sendAutopilotReportEmail(
     : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
 
   const { error } = await resend.emails.send({
-    from: 'adressa.cz <onboarding@resend.dev>',
+    from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: result.published.length > 0
       ? `✅ ${result.published.length} nové články publikovány – adressa.cz`
@@ -122,7 +122,7 @@ export async function sendProviderSalesPitchEmail(
     : `Váš profil <strong>${provider.fullName}</strong> jsme na adressa.cz vytvořili a je nyní veřejně vidět — zákazníci si ho mohou najít a kontaktovat vás. Aby zůstal na webu i nadále, je potřeba do <strong>${deadlineStr}</strong> (7 dní) potvrdit předplatné.`;
 
   const { error } = await resend.emails.send({
-    from: 'adressa.cz <onboarding@resend.dev>',
+    from: 'adressa.cz <noreply@adressa.cz>',
     to: provider.email,
     subject,
     html: `
@@ -180,7 +180,7 @@ export async function sendSalesAutopilotReportEmail(
   const totalActions = result.scheduled.length + result.pitched.length + result.reminded.length + result.removed.length;
 
   const { error } = await resend.emails.send({
-    from: 'adressa.cz <onboarding@resend.dev>',
+    from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `Sales autopilot: ${result.pitched.length + result.scheduled.length} osloveno, ${result.removed.length} odebráno – adressa.cz`,
     html: `
@@ -220,7 +220,7 @@ export async function sendVerificationEmail(
   const verifyUrl = `${baseUrl}/api/verify-email?token=${token}`;
 
   const { error } = await resend.emails.send({
-    from: 'adressa.cz <onboarding@resend.dev>',
+    from: 'adressa.cz <noreply@adressa.cz>',
     to: email,
     subject: 'Ověřte svůj e-mail / Verify your email – adressa.cz',
     html: `
