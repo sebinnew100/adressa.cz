@@ -6,6 +6,22 @@ import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { NextRunCountdown } from '@/components/admin/NextRunCountdown';
 
+type Stage = 'intro' | 'waiting' | 'hidden' | 'followup';
+
+const STAGES: { key: Stage; label: string; title: string }[] = [
+  { key: 'intro', label: '1️⃣', title: '1. Úvodní pitch — představení adressa.cz + ukázková poptávka' },
+  { key: 'waiting', label: '2️⃣', title: '2. „8 lidí čeká na váš obor"' },
+  { key: 'hidden', label: '3️⃣', title: '3. „10 skrytých poptávek"' },
+  { key: 'followup', label: '4️⃣', title: '4. Follow-up připomínka' },
+];
+
+const STAGE_LABEL_LONG: Record<string, string> = {
+  intro: '1️⃣ Úvod',
+  waiting: '2️⃣ Čekají',
+  hidden: '3️⃣ Skryté',
+  followup: '4️⃣ Follow-up',
+};
+
 interface Lead {
   id: string;
   fullName: string;
@@ -21,12 +37,12 @@ interface Lead {
   createdAt: string;
   contactCount: number;
   lastContactedAt: string | null;
+  lastContactedType: string | null;
 }
 
 interface SendHistoryDay {
   date: string;
-  pitch: number;
-  reminder: number;
+  byType: Record<string, number>;
   total: number;
 }
 
@@ -57,6 +73,7 @@ export default function AdminSalesPage() {
   const [testEmailAddr, setTestEmailAddr] = useState('');
   const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
   const [testingEmail, setTestingEmail] = useState(false);
+  const [bulkStage, setBulkStage] = useState<Stage>('intro');
 
   const runTestEmail = async () => {
     if (!testEmailAddr) return;
@@ -128,14 +145,14 @@ export default function AdminSalesPage() {
     );
   };
 
-  const sendTo = async (providerIds: string[]) => {
+  const sendTo = async (providerIds: string[], stage: Stage) => {
     if (providerIds.length === 0) return;
     setSending(true);
     setLastResult(null);
     const res = await fetch('/api/admin/sales/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ providerIds }),
+      body: JSON.stringify({ providerIds, stage }),
     });
     const json = await res.json();
     if (res.ok) {
@@ -145,7 +162,7 @@ export default function AdminSalesPage() {
       const failed = results.filter(r => r.status === 'failed');
       const skipped = results.filter(r => r.status === 'skipped_no_email').length;
       const uniqueErrors = Array.from(new Set(failed.map(r => r.error).filter(Boolean)));
-      let msg = `Odesláno: ${sent}`;
+      let msg = `[${STAGE_LABEL_LONG[stage]}] Odesláno: ${sent}`;
       if (failed.length) msg += `, selhalo: ${failed.length}`;
       if (skipped) msg += `, bez e-mailu: ${skipped}`;
       if (uniqueErrors.length) msg += ` — chyba: ${uniqueErrors.join(' | ')}`;
@@ -218,11 +235,11 @@ export default function AdminSalesPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap gap-4 mb-8">
-          <NextRunCountdown label="Příští automatický běh (nové leady, připomínky, odstranění)" hourUtc={20} />
+          <NextRunCountdown label="Příští automatický běh (nové leady, připomínky)" hourUtc={20} />
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
-          Sales autopilot běží automaticky každý den (Vercel Cron) — osloví nové leady, pošle připomínky před termínem a odešle naplánované strategické pitche. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu. Naplánovaný čas níže je datum — e-mail odejde v rámci nejbližšího denního běhu po tomto čase, ne přesně v danou minutu.
+          Sales autopilot běží automaticky každý den (Vercel Cron) — automaticky posílá pouze fáze <strong>1️⃣ Úvod</strong> a <strong>2️⃣ Čekají</strong>. Fáze <strong>3️⃣ Skryté</strong> a <strong>4️⃣ Follow-up</strong> jsou pouze pro ruční odeslání níže. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu.
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">
@@ -276,8 +293,7 @@ export default function AdminSalesPage() {
                 <thead className="sticky top-0 bg-gray-900">
                   <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
                     <th className="text-left px-6 py-2">Datum</th>
-                    <th className="text-center px-6 py-2">Pitch</th>
-                    <th className="text-center px-6 py-2">Připomínka</th>
+                    <th className="text-left px-6 py-2">Rozpis podle fáze</th>
                     <th className="text-center px-6 py-2">Celkem</th>
                   </tr>
                 </thead>
@@ -285,8 +301,11 @@ export default function AdminSalesPage() {
                   {data.sendHistory.map(d => (
                     <tr key={d.date}>
                       <td className="px-6 py-2 text-gray-300">{new Date(d.date).toLocaleDateString('cs-CZ')}</td>
-                      <td className="px-6 py-2 text-center text-gray-300">{d.pitch}</td>
-                      <td className="px-6 py-2 text-center text-gray-300">{d.reminder}</td>
+                      <td className="px-6 py-2 text-gray-400 text-xs">
+                        {Object.entries(d.byType).map(([type, count]) => (
+                          <span key={type} className="mr-3">{STAGE_LABEL_LONG[type] ?? type}: {count}</span>
+                        ))}
+                      </td>
                       <td className="px-6 py-2 text-center font-bold text-white">{d.total}</td>
                     </tr>
                   ))}
@@ -304,15 +323,22 @@ export default function AdminSalesPage() {
             onChange={e => setSearch(e.target.value)}
             className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
           />
+          <select
+            value={bulkStage}
+            onChange={e => setBulkStage(e.target.value as Stage)}
+            className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            {STAGES.map(s => <option key={s.key} value={s.key}>{s.title}</option>)}
+          </select>
           <button
-            onClick={() => sendTo(Array.from(selected))}
+            onClick={() => sendTo(Array.from(selected), bulkStage)}
             disabled={selected.size === 0 || sending}
             className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
           >
             {sending ? 'Odesílám…' : `Odeslat vybraným (${selected.size})`}
           </button>
           <button
-            onClick={() => sendTo(uncontactedIds)}
+            onClick={() => sendTo(uncontactedIds, bulkStage)}
             disabled={uncontactedIds.length === 0 || sending}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
           >
@@ -342,10 +368,10 @@ export default function AdminSalesPage() {
                     <th className="text-left px-6 py-3">Město</th>
                     <th className="text-left px-6 py-3">E-mail</th>
                     <th className="text-center px-6 py-3">Stav</th>
-                    <th className="text-center px-6 py-3">Kontaktováno</th>
-                    <th className="text-left px-6 py-3">Naplánovat pitch</th>
+                    <th className="text-center px-6 py-3">Poslední kontakt</th>
+                    <th className="text-left px-6 py-3">Naplánovat</th>
                     <th className="text-center px-6 py-3">Vyloučit</th>
-                    <th className="text-right px-6 py-3">Akce</th>
+                    <th className="text-right px-6 py-3">Odeslat fázi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -386,7 +412,7 @@ export default function AdminSalesPage() {
                             </span>
                           ) : (
                             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400" title={lead.lastContactedAt ?? ''}>
-                              {lead.contactCount}× · {lead.lastContactedAt && new Date(lead.lastContactedAt).toLocaleDateString('cs-CZ')}
+                              {lead.lastContactedType ? STAGE_LABEL_LONG[lead.lastContactedType] ?? lead.lastContactedType : ''} · {lead.contactCount}× · {lead.lastContactedAt && new Date(lead.lastContactedAt).toLocaleDateString('cs-CZ')}
                             </span>
                           )}
                         </td>
@@ -436,14 +462,20 @@ export default function AdminSalesPage() {
                             {lead.salesExempt ? '🔒' : '🔓'}
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => sendTo([lead.id])}
-                            disabled={sending}
-                            className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40"
-                          >
-                            {lead.contactCount === 0 ? '✉️ Odeslat pitch' : '✉️ Odeslat připomínku'}
-                          </button>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            {STAGES.map(s => (
+                              <button
+                                key={s.key}
+                                onClick={() => sendTo([lead.id], s.key)}
+                                disabled={sending}
+                                title={s.title}
+                                className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-brand text-gray-300 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-40"
+                              >
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
                         </td>
                       </tr>
                     );

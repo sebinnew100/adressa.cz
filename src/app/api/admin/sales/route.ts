@@ -35,21 +35,26 @@ export async function GET(request: NextRequest) {
       prisma.salesContact.findMany({ select: { sentAt: true, type: true }, orderBy: { sentAt: 'desc' } }),
     ]);
 
-    const byDay = new Map<string, { pitch: number; reminder: number }>();
+    const byDay = new Map<string, Record<string, number>>();
     for (const c of allContacts) {
       const day = c.sentAt.toISOString().slice(0, 10);
-      const entry = byDay.get(day) ?? { pitch: 0, reminder: 0 };
-      if (c.type === 'reminder') entry.reminder++; else entry.pitch++;
+      const entry = byDay.get(day) ?? {};
+      entry[c.type] = (entry[c.type] ?? 0) + 1;
       byDay.set(day, entry);
     }
     const sendHistory = Array.from(byDay.entries())
-      .map(([date, counts]) => ({ date, ...counts, total: counts.pitch + counts.reminder }))
+      .map(([date, byType]) => ({
+        date,
+        byType,
+        total: Object.values(byType).reduce((sum, n) => sum + n, 0),
+      }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const withStats = leads.map(({ salesContacts, ...p }) => ({
       ...p,
       contactCount: salesContacts.length,
       lastContactedAt: salesContacts[0]?.sentAt ?? null,
+      lastContactedType: salesContacts[0]?.type ?? null,
       daysLeft: p.removalDeadline
         ? Math.ceil((p.removalDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         : null,

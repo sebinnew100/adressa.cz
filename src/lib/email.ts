@@ -101,50 +101,145 @@ export async function sendAutopilotReportEmail(
   return true;
 }
 
+export type SalesPitchStage = 'intro' | 'waiting' | 'hidden' | 'followup';
+
+const EXAMPLE_CUSTOMER_NAMES = ['Jana Nováková', 'Petr Svoboda', 'Lucie Dvořáková', 'Tomáš Procházka', 'Kateřina Černá', 'Martin Veselý', 'Eva Kučerová', 'Jakub Horák'];
+const EXAMPLE_MESSAGE_TEMPLATES = [
+  (service: string) => `Dobrý den, sháním spolehlivého odborníka na ${service}. Mohli byste mi prosím zavolat a domluvit termín?`,
+  (service: string) => `Dobrý den, potřebuji ${service} co nejdříve, ideálně tento týden. Jaké máte volné termíny?`,
+  (service: string) => `Zdravím, hledám někoho na ${service} — doporučili mi vás. Můžete mi prosím napsat cenovou nabídku?`,
+];
+
+function randomExampleLead(serviceNameCz: string) {
+  const name = EXAMPLE_CUSTOMER_NAMES[Math.floor(Math.random() * EXAMPLE_CUSTOMER_NAMES.length)];
+  const template = EXAMPLE_MESSAGE_TEMPLATES[Math.floor(Math.random() * EXAMPLE_MESSAGE_TEMPLATES.length)];
+  return { name, message: template(serviceNameCz.toLowerCase()) };
+}
+
 export async function sendProviderSalesPitchEmail(
-  provider: { id: string; fullName: string; email: string },
-  opts: { isReminder: boolean; deadline: Date },
+  provider: { id: string; fullName: string; email: string; serviceNameCz: string; cityNameCz: string },
+  opts: { stage: SalesPitchStage; deadline: Date },
 ): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
   if (!resend) return { ok: false, error: 'RESEND_API_KEY not configured' };
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
   const activateUrl = `${baseUrl}/aktivovat/${provider.id}`;
+  const profileUrl = `${baseUrl}/providers/${provider.id}`;
   const deadlineStr = opts.deadline.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' });
-  const daysLeft = Math.max(0, Math.ceil((opts.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+  const service = provider.serviceNameCz;
+  const city = provider.cityNameCz;
 
-  const subject = opts.isReminder
-    ? `Zbývá ${daysLeft} ${daysLeft === 1 ? 'den' : daysLeft < 5 ? 'dny' : 'dní'} — profil ${provider.fullName} bude odstraněn z adressa.cz`
-    : `${provider.fullName}, váš profil je na adressa.cz živě — potvrďte si ho do ${deadlineStr}`;
+  const ctaButton = (label: string) => `
+    <a href="${activateUrl}"
+       style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;margin-top:12px;">
+      ${label}
+    </a>
+  `;
 
-  const intro = opts.isReminder
-    ? `Připomínáme, že profil <strong>${provider.fullName}</strong> je na adressa.cz stále bez potvrzeného předplatného. Pokud předplatné nezaložíte do <strong>${deadlineStr}</strong>, profil bude z webu odstraněn.`
-    : `Váš profil <strong>${provider.fullName}</strong> jsme na adressa.cz vytvořili a je nyní veřejně vidět — zákazníci si ho mohou najít a kontaktovat vás. Aby zůstal na webu i nadále, je potřeba do <strong>${deadlineStr}</strong> (7 dní) potvrdit předplatné.`;
+  const pricingList = `
+    <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
+      <li>15 Kč aktivační poplatek (jednorázově)</li>
+      <li>7 dní zdarma na vyzkoušení</li>
+      <li>poté 299 Kč každých 28 dní, kdykoliv zrušitelné</li>
+    </ul>
+  `;
+
+  const footer = `
+    <p style="color:#999;font-size:12px;margin-top:32px;">
+      Pokud si profil na adressa.cz nepřejete, nemusíte nic dělat — bude po ${deadlineStr} automaticky odebrán.
+    </p>
+  `;
+
+  let subject: string;
+  let html: string;
+
+  if (opts.stage === 'intro') {
+    const lead = randomExampleLead(service);
+    subject = `${provider.fullName}, vytvořili jsme pro vás profil na adressa.cz`;
+    html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Vítejte na adressa.cz</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Ahoj <strong>${provider.fullName}</strong>, jsme adressa.cz — místo, kde lidé v ${city} hledají ${service.toLowerCase()}.
+          Váš profil jsme pro vás již vytvořili a je veřejně viditelný.
+        </p>
+        <a href="${profileUrl}" style="color:#f97316;font-weight:600;text-decoration:none;font-size:14px;">→ Zobrazit váš profil</a>
+        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Co pro vás adressa.cz dělá:</p>
+        <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
+          <li>Zákazníci vás najdou přímo na Google i na webu</li>
+          <li>Poptávky chodí rovnou vám na e-mail</li>
+          <li>Profesní profil s recenzemi zvyšuje důvěru zákazníků</li>
+        </ul>
+        <div style="margin-top:20px;padding:16px;background:#f9fafb;border-radius:8px;border-left:3px solid #f97316;">
+          <p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Nedávná poptávka pro váš obor</p>
+          <p style="margin:0 0 4px;font-weight:600;color:#111;font-size:14px;">${lead.name}</p>
+          <p style="margin:0;color:#333;font-size:14px;line-height:1.5;">„${lead.message}"</p>
+        </div>
+        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Potvrďte předplatné a začněte tyto poptávky dostávat:</p>
+        ${pricingList}
+        ${ctaButton('Potvrdit předplatné')}
+        ${footer}
+      </div>
+    `;
+  } else if (opts.stage === 'waiting') {
+    subject = `${provider.fullName}, 8 lidí čeká na ${service.toLowerCase()} ve vašem okolí`;
+    html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">8 lidí čeká na odpověď</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Aktuálně máme <strong>8 lidí</strong>, kteří hledají ${service.toLowerCase()} v okolí ${city} a čekají na odpověď od místního odborníka jako jste vy.
+        </p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Váš profil <strong>${provider.fullName}</strong> zatím nemá potvrzené předplatné, takže tyto poptávky nevidíte.
+        </p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Potvrďte předplatné a začněte získávat zákazníky:</p>
+        ${pricingList}
+        ${ctaButton('Chci tyto zákazníky')}
+        ${footer}
+      </div>
+    `;
+  } else if (opts.stage === 'hidden') {
+    subject = `10 skrytých poptávek čeká na vaši odpověď`;
+    html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">10 poptávek čeká, až si je odemknete</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Pro profil <strong>${provider.fullName}</strong> máme připraveno <strong>10 dalších poptávek</strong> na ${service.toLowerCase()} v ${city}, které jsou momentálně skryté.
+        </p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Jakmile potvrdíte předplatné, získáte k nim okamžitý přístup.
+        </p>
+        ${pricingList}
+        ${ctaButton('Odemknout poptávky')}
+        ${footer}
+      </div>
+    `;
+  } else {
+    subject = `Poslední připomínka — nenechte si ujít zákazníky na adressa.cz`;
+    html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Poslední připomínka</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na potvrzení předplatného, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
+        </p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance potvrdit předplatné a zůstat viditelní:</p>
+        ${pricingList}
+        ${ctaButton('Potvrdit předplatné')}
+        ${footer}
+      </div>
+    `;
+  }
 
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to: provider.email,
     subject,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">${opts.isReminder ? 'Váš profil bude brzy odstraněn' : 'Váš profil je na adressa.cz živě'}</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">${intro}</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Potvrzení předplatného zabere méně než minutu:</p>
-        <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-          <li>15 Kč aktivační poplatek (jednorázově)</li>
-          <li>7 dní zdarma na vyzkoušení</li>
-          <li>poté 299 Kč každých 28 dní, kdykoliv zrušitelné</li>
-        </ul>
-        <a href="${activateUrl}"
-           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;margin-top:12px;">
-          Potvrdit předplatné a ponechat profil
-        </a>
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Pokud si profil na adressa.cz nepřejete, nemusíte nic dělat — bude po ${deadlineStr} automaticky odebrán.
-        </p>
-      </div>
-    `,
+    html,
   });
 
   if (error) {

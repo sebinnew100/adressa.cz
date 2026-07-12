@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendProviderSalesPitchEmail, sendSalesAutopilotReportEmail } from '@/lib/email';
+import { SERVICES } from '@/data/services';
+import { CITIES } from '@/data/cities';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,13 @@ function requireAuth(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   return auth === `Bearer ${secret}`;
+}
+
+function names(serviceId: string, cityId: string) {
+  return {
+    serviceNameCz: SERVICES.find(s => s.id === serviceId)?.nameCz ?? serviceId,
+    cityNameCz: CITIES.find(c => c.id === cityId)?.nameCz ?? cityId,
+  };
 }
 
 async function sendReport(result: {
@@ -46,6 +55,9 @@ export async function GET(request: NextRequest) {
   // the queue ahead of the generic batch. Cron only runs once a day, so
   // "schedule a time" really means "schedule a date": anything due gets sent
   // on the next daily run at/after that time, not at the exact minute.
+  // Automated scheduling only ever picks 'intro' (first contact) or
+  // 'waiting' (any later contact) — the 'hidden'/'followup' stages are
+  // manual-only, sent by the admin from /admin/sales for hand-picked leads.
   const scheduledDue = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
@@ -58,16 +70,16 @@ export async function GET(request: NextRequest) {
   const scheduled: { fullName: string; email: string }[] = [];
   for (const p of scheduledDue) {
     if (!p.email) continue;
-    const isReminder = p.salesContacts.length > 0;
+    const stage = p.salesContacts.length > 0 ? 'waiting' : 'intro';
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email },
-        { isReminder, deadline },
+        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { stage, deadline },
       );
       if (result.ok) {
         await prisma.$transaction([
-          prisma.salesContact.create({ data: { providerId: p.id, type: isReminder ? 'reminder' : 'pitch' } }),
+          prisma.salesContact.create({ data: { providerId: p.id, type: stage } }),
           prisma.provider.update({
             where: { id: p.id },
             data: { scheduledSendAt: null, removalDeadline: p.removalDeadline ?? deadline },
@@ -89,7 +101,7 @@ export async function GET(request: NextRequest) {
     select: { id: true, fullName: true, email: true },
   });
 
-  // 2. Remind leads whose deadline is within REMINDER_WINDOW_DAYS and haven't been reminded yet.
+  // 2. Remind leads whose deadline is within REMINDER_WINDOW_DAYS and haven't gotten a 'waiting' email yet.
   const reminderCandidates = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
@@ -98,18 +110,18 @@ export async function GET(request: NextRequest) {
       email: { not: null },
       removalDeadline: { gte: now, lte: new Date(now.getTime() + REMINDER_WINDOW_DAYS * 24 * 60 * 60 * 1000) },
     },
-    include: { salesContacts: { where: { type: 'reminder' }, take: 1 } },
+    include: { salesContacts: { where: { type: 'waiting' }, take: 1 } },
   });
   const reminded: { fullName: string; email: string }[] = [];
   for (const p of reminderCandidates) {
     if (!p.email || p.salesContacts.length > 0 || !p.removalDeadline) continue;
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email },
-        { isReminder: true, deadline: p.removalDeadline },
+        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { stage: 'waiting', deadline: p.removalDeadline },
       );
       if (result.ok) {
-        await prisma.salesContact.create({ data: { providerId: p.id, type: 'reminder' } });
+        await prisma.salesContact.create({ data: { providerId: p.id, type: 'waiting' } });
         reminded.push({ fullName: p.fullName, email: p.email });
       }
     } catch (err) {
@@ -117,7 +129,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 3. Pitch a fresh batch of never-contacted real leads.
+  // 3. Pitch a fresh batch of never-contacted real leads (stage 'intro').
   const newLeads = await prisma.provider.findMany({
     where: {
       stripeSubscriptionId: null,
@@ -135,12 +147,12 @@ export async function GET(request: NextRequest) {
     const deadline = new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email },
-        { isReminder: false, deadline },
+        { id: p.id, fullName: p.fullName, email: p.email, ...names(p.serviceId, p.cityId) },
+        { stage: 'intro', deadline },
       );
       if (result.ok) {
         await prisma.$transaction([
-          prisma.salesContact.create({ data: { providerId: p.id, type: 'pitch' } }),
+          prisma.salesContact.create({ data: { providerId: p.id, type: 'intro' } }),
           prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } }),
         ]);
         pitched.push({ fullName: p.fullName, email: p.email });
