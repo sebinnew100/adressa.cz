@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, MONTHLY_PRICE_CZK, TRIAL_DAYS } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -18,17 +18,40 @@ export async function POST(request: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const providerId = session.metadata?.providerId;
-      if (providerId && session.subscription && session.customer) {
-        await prisma.provider.update({
-          where: { id: providerId },
-          data: {
-            active: true,
-            subscriptionStatus: 'trialing',
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
-          },
-        });
-      }
+      if (!providerId || session.mode !== 'payment' || !session.customer || !session.payment_intent) break;
+
+      // The 10 CZK activation fee just charged for real. Now pull the
+      // payment method it used and start the actual trialing subscription
+      // server-side — no second checkout/redirect needed.
+      const customerId = session.customer as string;
+      const paymentIntent = await getStripe().paymentIntents.retrieve(session.payment_intent as string);
+      const paymentMethodId = paymentIntent.payment_method as string | null;
+      if (!paymentMethodId) break;
+
+      const price = await getStripe().prices.create({
+        currency: 'czk',
+        unit_amount: MONTHLY_PRICE_CZK,
+        recurring: { interval: 'week', interval_count: 4 },
+        product_data: { name: 'adressa.cz — Inzerce profilu (každých 28 dní)' },
+      });
+
+      const subscription = await getStripe().subscriptions.create({
+        customer: customerId,
+        items: [{ price: price.id, quantity: 1 }],
+        trial_period_days: TRIAL_DAYS,
+        default_payment_method: paymentMethodId,
+        metadata: { providerId },
+      });
+
+      await prisma.provider.update({
+        where: { id: providerId },
+        data: {
+          active: true,
+          subscriptionStatus: subscription.status,
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscription.id,
+        },
+      });
       break;
     }
 

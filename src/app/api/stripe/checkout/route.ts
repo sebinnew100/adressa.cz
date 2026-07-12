@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, MONTHLY_PRICE_CZK, TRIAL_ACTIVATION_FEE_CZK, TRIAL_DAYS } from '@/lib/stripe';
+import { getStripe, TRIAL_ACTIVATION_FEE_CZK } from '@/lib/stripe';
 import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -16,11 +16,15 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adresarcz.vercel.app';
 
+    // One-time payment mode: this genuinely charges the 10 CZK activation
+    // fee immediately (a trialing subscription would defer any bundled
+    // one-time item to its first real invoice instead of charging now).
+    // The card is saved (setup_future_usage) so the webhook can create the
+    // actual trialing subscription server-side once this payment confirms.
     const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          // One-time activation fee, charged immediately at checkout.
           price_data: {
             currency: 'czk',
             unit_amount: TRIAL_ACTIVATION_FEE_CZK,
@@ -31,26 +35,13 @@ export async function POST(request: NextRequest) {
           },
           quantity: 1,
         },
-        {
-          // Recurring subscription, trial delays the first charge by TRIAL_DAYS.
-          // Fixed 28-day cycle (4 weeks), not calendar-month billing.
-          price_data: {
-            currency: 'czk',
-            unit_amount: MONTHLY_PRICE_CZK,
-            recurring: { interval: 'week', interval_count: 4 },
-            product_data: {
-              name: 'adressa.cz — Inzerce profilu (každých 28 dní)',
-              description: `Profil: ${provider.fullName}`,
-            },
-          },
-          quantity: 1,
-        },
       ],
-      mode: 'subscription',
-      subscription_data: {
-        trial_period_days: TRIAL_DAYS,
+      mode: 'payment',
+      payment_intent_data: {
+        setup_future_usage: 'off_session',
         metadata: { providerId },
       },
+      customer_creation: 'always',
       metadata: { providerId },
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancel?providerId=${providerId}`,
