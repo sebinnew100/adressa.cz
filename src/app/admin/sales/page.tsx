@@ -23,8 +23,16 @@ interface Lead {
   lastContactedAt: string | null;
 }
 
+interface SendHistoryDay {
+  date: string;
+  pitch: number;
+  reminder: number;
+  total: number;
+}
+
 interface SalesData {
   leads: Lead[];
+  sendHistory: SendHistoryDay[];
   stats: {
     totalProviders: number;
     subscribed: number;
@@ -85,13 +93,21 @@ export default function AdminSalesPage() {
   }, []);
 
   const leadsWithEmail = useMemo(() => (data?.leads ?? []).filter(l => l.email), [data]);
-  const filtered = useMemo(
-    () => leadsWithEmail.filter(l =>
-      l.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      (l.email ?? '').toLowerCase().includes(search.toLowerCase())
-    ),
-    [leadsWithEmail, search],
-  );
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return leadsWithEmail;
+    return leadsWithEmail.filter(l => {
+      const service = SERVICES.find(s => s.id === l.serviceId);
+      const city = CITIES.find(c => c.id === l.cityId);
+      return (
+        l.fullName.toLowerCase().includes(q) ||
+        (l.email ?? '').toLowerCase().includes(q) ||
+        (service?.nameCz.toLowerCase().includes(q)) ||
+        (service?.nameEn?.toLowerCase().includes(q)) ||
+        (city?.nameCz.toLowerCase().includes(q))
+      );
+    });
+  }, [leadsWithEmail, search]);
   const uncontactedIds = useMemo(
     () => filtered.filter(l => l.contactCount === 0).map(l => l.id),
     [filtered],
@@ -250,10 +266,40 @@ export default function AdminSalesPage() {
           ))}
         </div>
 
+        {data && data.sendHistory.length > 0 && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
+            <div className="px-6 py-4 border-b border-gray-800">
+              <h3 className="font-bold text-sm">📊 Historie odesílání podle data</h3>
+            </div>
+            <div className="overflow-x-auto max-h-64 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-gray-900">
+                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <th className="text-left px-6 py-2">Datum</th>
+                    <th className="text-center px-6 py-2">Pitch</th>
+                    <th className="text-center px-6 py-2">Připomínka</th>
+                    <th className="text-center px-6 py-2">Celkem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {data.sendHistory.map(d => (
+                    <tr key={d.date}>
+                      <td className="px-6 py-2 text-gray-300">{new Date(d.date).toLocaleDateString('cs-CZ')}</td>
+                      <td className="px-6 py-2 text-center text-gray-300">{d.pitch}</td>
+                      <td className="px-6 py-2 text-center text-gray-300">{d.reminder}</td>
+                      <td className="px-6 py-2 text-center font-bold text-white">{d.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <input
             type="text"
-            placeholder="Hledat podle jména nebo e-mailu..."
+            placeholder="Hledat podle jména, e-mailu, služby nebo města..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
