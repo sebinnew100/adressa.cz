@@ -19,13 +19,11 @@ export async function postArticleToFacebook(
   const message = `${messagePrefix ?? ''}${article.title}\n\nČtěte více na adressa.cz:`;
 
   try {
+    // Graph API expects standard query-string/form params, not a JSON body.
+    const params = new URLSearchParams({ message, link: url, access_token: accessToken });
     const res = await fetch(
-      `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/feed`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, link: url, access_token: accessToken }),
-      }
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/feed?${params.toString()}`,
+      { method: 'POST' }
     );
     const body = await res.text();
     if (!res.ok) {
