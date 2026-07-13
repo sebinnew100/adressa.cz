@@ -84,8 +84,11 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-600 mt-10 pt-6 text-center text-xs text-gray-500">
-          © {year} adressa.cz — {t.footer.rights}
+        <div className="border-t border-gray-600 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
+          <span>© {year} adressa.cz — {t.footer.rights}</span>
+          <Link href="/ochrana-osobnich-udaju" className="hover:text-brand transition-colors">
+            {language === 'cs' ? 'Ochrana osobních údajů' : 'Privacy Policy'}
+          </Link>
         </div>
       </div>
     </footer>
