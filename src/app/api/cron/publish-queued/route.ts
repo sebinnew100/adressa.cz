@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendAutopilotReportEmail } from '@/lib/email';
 import { submitToIndexNow } from '@/lib/indexNow';
+import { postArticleToFacebook } from '@/lib/facebook';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,9 @@ export async function GET(request: NextRequest) {
   const newTotal = await prisma.article.count({ where: { published: true } });
 
   await submitToIndexNow(published.map(a => `https://www.adressa.cz/clanky/${a.slug}`));
+  for (const article of published) {
+    await postArticleToFacebook(article);
+  }
 
   const result = {
     published,
