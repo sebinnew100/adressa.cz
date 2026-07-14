@@ -548,13 +548,21 @@ export default function AdminDashboard() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
             <h2 className="font-bold text-lg">Všechny profily</h2>
-            <input
-              type="text"
-              placeholder="Hledat podle jména nebo e-mailu..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
-            />
+            <div className="flex items-center gap-3">
+              <a
+                href="/api/admin/providers/export"
+                className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+              >
+                Stáhnout Excel (CSV)
+              </a>
+              <input
+                type="text"
+                placeholder="Hledat podle jména nebo e-mailu..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand w-64 placeholder-gray-500"
+              />
+            </div>
           </div>
 
           {loading ? (
