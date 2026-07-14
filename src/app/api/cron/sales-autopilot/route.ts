@@ -64,6 +64,7 @@ async function sendReport(result: {
   sent: { fullName: string; email: string; stage: string }[];
   pastDeadline: { fullName: string; email: string | null }[];
   remainingNeverContacted: number;
+  gapWarning?: string;
 }) {
   const to = process.env.AUTOPILOT_REPORT_EMAIL;
   if (!to) return;
@@ -80,6 +81,15 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
+
+  // Detect a skipped scheduled run (e.g. Vercel Cron dropping a run during a
+  // burst of production redeploys) so it's visible in the report instead of
+  // only being noticed if someone happens to check manually.
+  const lastContact = await prisma.salesContact.findFirst({ orderBy: { sentAt: 'desc' }, select: { sentAt: true } });
+  const hoursSinceLastContact = lastContact ? (now.getTime() - lastContact.sentAt.getTime()) / (1000 * 60 * 60) : 0;
+  const gapWarning = hoursSinceLastContact > 30
+    ? `⚠️ Poslední oslovení proběhlo před ~${Math.round(hoursSinceLastContact)}h — pravděpodobně byl vynechán jeden naplánovaný běh.`
+    : undefined;
 
   // 0. Strategic sends the admin scheduled a specific time for — these jump
   // the queue ahead of everything else and are NOT counted against the daily
@@ -211,6 +221,7 @@ export async function GET(request: NextRequest) {
     sent,
     pastDeadline: pastDeadline.map(p => ({ fullName: p.fullName, email: p.email })),
     remainingNeverContacted: neverContacted.length,
+    ...(gapWarning ? { gapWarning } : {}),
   };
 
   await sendReport(result);

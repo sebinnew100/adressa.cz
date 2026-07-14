@@ -64,8 +64,13 @@ export async function sendAutopilotReportEmail(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
   const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
 
+  const warningBanner = result.reason && result.reason.startsWith('⚠️')
+    ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;">${result.reason}</p>`
+    : '';
+
   const body = result.published.length > 0
     ? `
+      ${warningBanner}
       <p style="color:#555;margin-bottom:16px;">Dnes v noci (${dateStr}) bylo automaticky publikováno ${result.published.length} ${result.published.length === 1 ? 'nový článek' : 'nové články'}:</p>
       <ul style="padding-left:20px;color:#111;">
         ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:#f97316;">${a.title}</a></li>`).join('')}
@@ -73,10 +78,14 @@ export async function sendAutopilotReportEmail(
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
 
+  const isCatchUp = result.published.length > 0 && !!result.reason?.startsWith('⚠️');
+
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
-    subject: result.published.length > 0
+    subject: isCatchUp
+      ? `⚠️ Autopilot dohnal vynechaný běh – adressa.cz`
+      : result.published.length > 0
       ? `✅ ${result.published.length} nové články publikovány – adressa.cz`
       : `⚠️ Autopilot dnes nic nepublikoval – adressa.cz`,
     html: `
@@ -280,6 +289,7 @@ export async function sendSalesAutopilotReportEmail(
     sent: { fullName: string; email: string; stage: string }[];
     pastDeadline: { fullName: string; email: string | null }[];
     remainingNeverContacted: number;
+    gapWarning?: string;
   },
 ): Promise<boolean> {
   const resend = getResend();
@@ -321,6 +331,7 @@ export async function sendSalesAutopilotReportEmail(
           Celkem odesláno dnes: ${result.sent.length + result.scheduled.length} e-mailů
         </p>
         <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
+        ${result.gapWarning ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin:12px 0;font-size:13px;">${result.gapWarning}</p>` : ''}
         ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
         ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
         ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
