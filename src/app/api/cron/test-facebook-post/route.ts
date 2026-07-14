@@ -20,6 +20,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const pageId = process.env.FACEBOOK_PAGE_ID;
+  const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+  let pageCheck: unknown = null;
+  if (pageId && accessToken) {
+    const res = await fetch(
+      `https://graph.facebook.com/v19.0/${pageId}?fields=id,name&access_token=${encodeURIComponent(accessToken)}`
+    );
+    pageCheck = { status: res.status, body: await res.text() };
+  }
+
   const article = await prisma.article.findFirst({
     where: { published: true, coverImagePath: { not: null } },
     orderBy: { createdAt: 'desc' },
@@ -27,9 +38,9 @@ export async function GET(request: NextRequest) {
   });
 
   if (!article) {
-    return NextResponse.json({ error: 'no published article with a cover image found' }, { status: 404 });
+    return NextResponse.json({ error: 'no published article with a cover image found', pageCheck }, { status: 404 });
   }
 
   const result = await postArticleToFacebook(article, '[TEST — safe to delete] ');
-  return NextResponse.json({ article, result });
+  return NextResponse.json({ pageCheck, article, result });
 }
