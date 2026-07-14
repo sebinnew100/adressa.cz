@@ -28,7 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const serviceId = request.nextUrl.searchParams.get('service') || undefined;
+  const cityId = request.nextUrl.searchParams.get('city') || undefined;
+
   const providers = await prisma.provider.findMany({
+    where: {
+      ...(serviceId ? { serviceId } : {}),
+      ...(cityId ? { cityId } : {}),
+    },
     orderBy: [{ active: 'asc' }, { createdAt: 'desc' }],
   });
 
@@ -50,10 +57,11 @@ export async function GET(request: NextRequest) {
   const csv = [COLUMNS.join(','), ...rows.map(r => r.map(csvCell).join(','))].join('\n');
   const bom = '﻿'; // so Excel opens UTF-8 (Czech diacritics) correctly
 
+  const filenameParts = ['poskytovatele', serviceId, cityId, new Date().toISOString().slice(0, 10)].filter(Boolean);
   return new Response(bom + csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="poskytovatele-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Content-Disposition': `attachment; filename="${filenameParts.join('-')}.csv"`,
     },
   });
 }

@@ -30,6 +30,8 @@ export default function AdminDashboard() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [exportService, setExportService] = useState('');
+  const [exportCity, setExportCity] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
@@ -549,8 +551,31 @@ export default function AdminDashboard() {
           <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
             <h2 className="font-bold text-lg">Všechny profily</h2>
             <div className="flex items-center gap-3">
+              <select
+                value={exportService}
+                onChange={e => setExportService(e.target.value)}
+                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <option value="">Všechny kategorie</option>
+                {SERVICES.map(s => (
+                  <option key={s.id} value={s.id}>{s.nameCz}</option>
+                ))}
+              </select>
+              <select
+                value={exportCity}
+                onChange={e => setExportCity(e.target.value)}
+                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <option value="">Všechna města</option>
+                {CITIES.map(c => (
+                  <option key={c.id} value={c.id}>{c.nameCz}</option>
+                ))}
+              </select>
               <a
-                href="/api/admin/providers/export"
+                href={`/api/admin/providers/export?${new URLSearchParams({
+                  ...(exportService ? { service: exportService } : {}),
+                  ...(exportCity ? { city: exportCity } : {}),
+                }).toString()}`}
                 className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
               >
                 Stáhnout Excel (CSV)
