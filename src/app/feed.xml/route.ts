@@ -18,18 +18,21 @@ export async function GET() {
     where: { published: true },
     orderBy: { createdAt: 'desc' },
     take: 20,
-    select: { title: true, slug: true, excerpt: true, content: true, createdAt: true },
+    select: { title: true, slug: true, excerpt: true, content: true, createdAt: true, coverImagePath: true },
   });
 
   const items = articles.map(a => {
     const url = `${BASE}/clanky/${a.slug}`;
     const description = (a.excerpt ?? a.content).slice(0, 300);
+    const enclosure = a.coverImagePath
+      ? `\n    <enclosure url="${escapeXml(a.coverImagePath)}" type="image/jpeg" />`
+      : '';
     return `  <item>
     <title>${escapeXml(a.title)}</title>
     <link>${escapeXml(url)}</link>
     <guid isPermaLink="true">${escapeXml(url)}</guid>
     <description>${escapeXml(description)}</description>
-    <pubDate>${a.createdAt.toUTCString()}</pubDate>
+    <pubDate>${a.createdAt.toUTCString()}</pubDate>${enclosure}
   </item>`;
   }).join('\n');
 
