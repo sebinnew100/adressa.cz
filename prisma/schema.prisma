@@ -29,6 +29,7 @@ model Provider {
   removalDeadline DateTime?
   salesExempt     Boolean   @default(false)
   scheduledSendAt DateTime?
+  placeId         String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   reviews      Review[]

@@ -110,6 +110,55 @@ export async function sendAutopilotReportEmail(
   return true;
 }
 
+export async function sendProviderImportReportEmail(
+  to: string,
+  result: {
+    added: { fullName: string; serviceNameCz: string; cityNameCz: string }[];
+    query: string;
+    skippedDuplicates: number;
+    reason?: string;
+  },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
+
+  const body = result.added.length > 0
+    ? `
+      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.added.length} nových poskytovatelů z vyhledávání „${result.query}“:</p>
+      <ul style="padding-left:20px;color:#111;">
+        ${result.added.map(p => `<li style="margin-bottom:6px;">${p.fullName} — ${p.serviceNameCz}, ${p.cityNameCz}</li>`).join('')}
+      </ul>
+      ${result.skippedDuplicates > 0 ? `<p style="color:#999;font-size:13px;">(${result.skippedDuplicates} nalezených firem už v katalogu existovalo, přeskočeno.)</p>` : ''}
+    `
+    : `<p style="color:#555;margin-bottom:16px;">Dnes nebyl přidán žádný nový poskytovatel. Důvod: ${result.reason || 'neznámý'}.</p>`;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: result.added.length > 0
+      ? `✅ ${result.added.length} nových poskytovatelů přidáno – adressa.cz`
+      : `⚠️ Dnes nebyl přidán žádný poskytovatel – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Denní report – přidávání poskytovatelů</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatický import z Google Places</p>
+        ${body}
+        <p style="color:#999;font-size:12px;margin-top:32px;">
+          Tito poskytovatelé jsou reální (z Google Places) a jsou automaticky vyňati z prodejního oslovování, dokud si to sami nezažádají.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendProviderImportReportEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
 export type SalesPitchStage = 'intro' | 'waiting' | 'hidden' | 'followup';
 
 const EXAMPLE_CUSTOMER_NAMES = ['Jana Nováková', 'Petr Svoboda', 'Lucie Dvořáková', 'Tomáš Procházka', 'Kateřina Černá', 'Martin Veselý', 'Eva Kučerová', 'Jakub Horák'];
