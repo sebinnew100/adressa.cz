@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
+import { Agent } from 'undici';
 import AdmZip from 'adm-zip';
 import { parser } from 'stream-json';
 import { pick } from 'stream-json/filters/Pick';
@@ -12,6 +13,22 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 const BASE_URL = 'https://isvz.nipez.cz/sites/default/files/content/opendata-rvz';
+// The government server can be slow to accept connections for this large a
+// file — default undici connect timeout (10s) isn't always enough.
+const longTimeoutAgent = new Agent({ connectTimeout: 30_000, headersTimeout: 60_000 });
+
+async function fetchWithRetry(url: string, attempts = 3): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(url, { dispatcher: longTimeoutAgent } as RequestInit);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
 // Only import notices whose CPV code maps to a category real users would
 // actually search adressa.cz for — most government contracts (office
 // supplies, defense equipment, etc.) are irrelevant to our audience.
@@ -46,7 +63,14 @@ export async function GET(request: NextRequest) {
   const fileName = `VZ-${month}-${year}.zip`;
   const url = `${BASE_URL}/${fileName}`;
 
-  const res = await fetch(url);
+  let res: Response;
+  try {
+    res = await fetchWithRetry(url);
+  } catch (err) {
+    const result = { imported: 0, scanned: 0, fileName, reason: `Could not connect to ${url} after retries: ${String(err)}` };
+    await sendReport(result);
+    return NextResponse.json(result);
+  }
   if (!res.ok || !res.body) {
     const result = { imported: 0, scanned: 0, fileName, reason: `Could not download ${url} (status ${res.status})` };
     await sendReport(result);
