@@ -7,7 +7,7 @@ import { CITIES } from '@/data/cities';
 
 export const dynamic = 'force-dynamic';
 
-const PROVIDERS_PER_RUN = 10;
+const PROVIDERS_PER_RUN = 20;
 // Fixed reference point so the rotation index is stable across deploys —
 // doesn't need to be "the actual start date", just a fixed anchor.
 const ROTATION_EPOCH = new Date('2026-01-01T00:00:00Z').getTime();
