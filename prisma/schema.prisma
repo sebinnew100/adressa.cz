@@ -133,3 +133,19 @@ model GameSubmission {
   createdAt     DateTime    @default(now())
   reviewedAt    DateTime?
 }
+
+model ProcurementNotice {
+  id               String   @id @default(cuid())
+  externalId       String   @unique // identifikator_NIPEZ — dedup key across monthly imports
+  title            String
+  description      String?  @db.Text
+  cpvCode          String?
+  regionCode       String?  // NUTS region code, e.g. CZ032
+  relatedServiceId String?  // mapped from CPV code where possible
+  status           String?
+  estimatedValue   Float?
+  procedureStartAt DateTime?
+  sourceUrl        String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}

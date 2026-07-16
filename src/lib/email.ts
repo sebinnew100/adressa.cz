@@ -159,6 +159,55 @@ export async function sendProviderImportReportEmail(
   return true;
 }
 
+export async function sendProcurementImportReportEmail(
+  to: string,
+  result: {
+    imported: number;
+    scanned: number;
+    fileName: string;
+    reason?: string;
+    importedTitles?: { title: string; cpvCode: string | null }[];
+  },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
+
+  const body = result.imported > 0
+    ? `
+      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.imported} nových veřejných zakázek ze souboru ${result.fileName} (proskenováno ${result.scanned} záznamů):</p>
+      <ul style="padding-left:20px;color:#111;">
+        ${(result.importedTitles ?? []).map(t => `<li style="margin-bottom:6px;">${t.title}</li>`).join('')}
+      </ul>
+    `
+    : `<p style="color:#555;margin-bottom:16px;">Dnes nebyla přidána žádná nová veřejná zakázka (proskenováno ${result.scanned} záznamů ze souboru ${result.fileName}). Důvod: ${result.reason || 'žádné relevantní zakázky nenalezeny'}.</p>`;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: result.imported > 0
+      ? `✅ ${result.imported} nových veřejných zakázek – adressa.cz`
+      : `⚠️ Dnes žádné nové veřejné zakázky – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Měsíční report – veřejné zakázky</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatický import z ISVZ Open Data</p>
+        ${body}
+        <p style="color:#999;font-size:12px;margin-top:32px;">
+          Data pochází z oficiálních otevřených dat Registru veřejných zakázek (isvz.nipez.cz/opendata).
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendProcurementImportReportEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
 export type SalesPitchStage = 'intro' | 'waiting' | 'hidden' | 'followup';
 
 const EXAMPLE_CUSTOMER_NAMES = ['Jana Nováková', 'Petr Svoboda', 'Lucie Dvořáková', 'Tomáš Procházka', 'Kateřina Černá', 'Martin Veselý', 'Eva Kučerová', 'Jakub Horák'];
