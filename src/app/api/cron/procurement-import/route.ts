@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import unzipper from 'unzipper';
+import AdmZip from 'adm-zip';
 import { parser } from 'stream-json';
 import { pick } from 'stream-json/filters/Pick';
 import { streamArray } from 'stream-json/streamers/StreamArray';
@@ -58,17 +58,18 @@ export async function GET(request: NextRequest) {
   const importedTitles: { title: string; cpvCode: string | null }[] = [];
 
   try {
-    // unzipper needs random access for the zip central directory, so buffer
-    // the compressed file fully first (~30MB compressed — fine in memory;
-    // it's the uncompressed JSON we avoid ever fully materializing below).
+    // Buffer the compressed zip fully (~30MB — fine in memory), extract the
+    // single JSON entry as a buffer, then stream-*parse* that buffer so we
+    // never build a full in-memory JS object graph for the ~230MB of JSON —
+    // only the buffer itself plus one record at a time during parsing.
     const zipStream = Readable.fromWeb(res.body as unknown as import('stream/web').ReadableStream);
     const zipBuffer = await streamToBuffer(zipStream);
-    const directory = await unzipper.Open.buffer(zipBuffer);
-
-    const entry = directory.files.find(f => f.path.endsWith('.json'));
+    const zip = new AdmZip(zipBuffer);
+    const entry = zip.getEntries().find(e => e.entryName.endsWith('.json'));
     if (!entry) throw new Error('No .json file found inside zip');
 
-    const jsonStream = entry.stream();
+    const jsonBuffer = entry.getData();
+    const jsonStream = Readable.from(jsonBuffer);
     const pipelineSteps = jsonStream.pipe(parser()).pipe(pick({ filter: 'data' })).pipe(streamArray());
 
     for await (const { value } of pipelineSteps as AsyncIterable<{ value: RawRecord }>) {
