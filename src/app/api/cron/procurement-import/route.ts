@@ -57,9 +57,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // A given month's data isn't published until after that month ends, so
+  // always request the previous month's file, not the current one.
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const previousMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const year = previousMonth.getUTCFullYear();
+  const month = String(previousMonth.getUTCMonth() + 1).padStart(2, '0');
   const fileName = `VZ-${month}-${year}.zip`;
   const url = `${BASE_URL}/${fileName}`;
 
