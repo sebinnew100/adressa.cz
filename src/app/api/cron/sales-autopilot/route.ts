@@ -106,14 +106,15 @@ export async function GET(request: NextRequest) {
     },
     include: { salesContacts: { select: { type: true, sentAt: true } } },
   });
-  const scheduled: { fullName: string; email: string; stage: string }[] = [];
+  const scheduled: { fullName: string; email: string; stage: string; cityNameCz: string }[] = [];
   for (const p of scheduledDue) {
     if (!p.email) continue;
     const stage: SalesPitchStage = nextDueStage(p.salesContacts)?.stage ?? 'intro';
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    const { serviceNameCz, cityNameCz } = names(p.serviceId, p.cityId);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, serviceNameCz, cityNameCz },
         { stage, deadline },
       );
       if (result.ok) {
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest) {
             data: { scheduledSendAt: null, removalDeadline: p.removalDeadline ?? deadline },
           }),
         ]);
-        scheduled.push({ fullName: p.fullName, email: p.email, stage });
+        scheduled.push({ fullName: p.fullName, email: p.email, stage, cityNameCz });
       }
     } catch (err) {
       console.error('Sales autopilot scheduled send failed for', p.id, err);
@@ -134,10 +135,15 @@ export async function GET(request: NextRequest) {
   // 1. Report-only: providers whose 7-day "will be removed" deadline passed.
   // The email tells them the listing "will be removed", but deliberately
   // does NOT actually deactivate anyone — informational for the admin only.
-  const pastDeadline = await prisma.provider.findMany({
+  const pastDeadlineRaw = await prisma.provider.findMany({
     where: { stripeSubscriptionId: null, active: true, salesExempt: false, removalDeadline: { lt: now } },
-    select: { id: true, fullName: true, email: true },
+    select: { id: true, fullName: true, email: true, serviceId: true, cityId: true },
   });
+  const pastDeadline = pastDeadlineRaw.map(p => ({
+    fullName: p.fullName,
+    email: p.email,
+    cityNameCz: names(p.serviceId, p.cityId).cityNameCz,
+  }));
 
   // 2. Everyone else: figure out who's due for their next stage today, and
   // who's never been contacted at all (eligible for 'intro'). Deliberately
@@ -170,15 +176,16 @@ export async function GET(request: NextRequest) {
   }
   dueAdvances.sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime()); // most-overdue first
 
-  const sent: { fullName: string; email: string; stage: string }[] = [];
+  const sent: { fullName: string; email: string; stage: string; cityNameCz: string }[] = [];
   let sentCount = 0;
 
   for (const { provider: p, stage } of dueAdvances) {
     if (sentCount >= TOTAL_DAILY_CAP || !p.email) continue;
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    const { serviceNameCz, cityNameCz } = names(p.serviceId, p.cityId);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, serviceNameCz, cityNameCz },
         { stage, deadline },
       );
       if (result.ok) {
@@ -186,7 +193,7 @@ export async function GET(request: NextRequest) {
           prisma.salesContact.create({ data: { providerId: p.id, type: stage } }),
           ...(p.removalDeadline ? [] : [prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } })]),
         ]);
-        sent.push({ fullName: p.fullName, email: p.email, stage });
+        sent.push({ fullName: p.fullName, email: p.email, stage, cityNameCz });
         sentCount++;
       }
     } catch (err) {
@@ -198,9 +205,10 @@ export async function GET(request: NextRequest) {
   for (const p of neverContacted.slice(0, introBudget)) {
     if (!p.email) continue;
     const deadline = new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    const { serviceNameCz, cityNameCz } = names(p.serviceId, p.cityId);
     try {
       const result = await sendProviderSalesPitchEmail(
-        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, ...names(p.serviceId, p.cityId) },
+        { id: p.id, fullName: p.fullName, email: p.email, description: p.description, picturePath: p.picturePath, serviceNameCz, cityNameCz },
         { stage: 'intro', deadline },
       );
       if (result.ok) {
@@ -208,7 +216,7 @@ export async function GET(request: NextRequest) {
           prisma.salesContact.create({ data: { providerId: p.id, type: 'intro' } }),
           prisma.provider.update({ where: { id: p.id }, data: { removalDeadline: deadline } }),
         ]);
-        sent.push({ fullName: p.fullName, email: p.email, stage: 'intro' });
+        sent.push({ fullName: p.fullName, email: p.email, stage: 'intro', cityNameCz });
         sentCount++;
       }
     } catch (err) {
@@ -219,7 +227,7 @@ export async function GET(request: NextRequest) {
   const result = {
     scheduled,
     sent,
-    pastDeadline: pastDeadline.map(p => ({ fullName: p.fullName, email: p.email })),
+    pastDeadline,
     remainingNeverContacted: neverContacted.length,
     ...(gapWarning ? { gapWarning } : {}),
   };

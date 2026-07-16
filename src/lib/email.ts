@@ -52,7 +52,7 @@ export async function sendAppointmentEmail(
 export async function sendAutopilotReportEmail(
   to: string,
   result: {
-    published: { title: string; slug: string }[];
+    published: { title: string; slug: string; cityNameCz?: string | null }[];
     totalPublished: number;
     target: number;
     reason?: string;
@@ -73,7 +73,7 @@ export async function sendAutopilotReportEmail(
       ${warningBanner}
       <p style="color:#555;margin-bottom:16px;">Dnes v noci (${dateStr}) bylo automaticky publikováno ${result.published.length} ${result.published.length === 1 ? 'nový článek' : 'nové články'}:</p>
       <ul style="padding-left:20px;color:#111;">
-        ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:#f97316;">${a.title}</a></li>`).join('')}
+        ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:#f97316;">${a.title}</a>${a.cityNameCz ? ` <span style="color:#999;">— ${a.cityNameCz}</span>` : ''}</li>`).join('')}
       </ul>
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
@@ -334,9 +334,9 @@ const STAGE_LABEL_CZ: Record<string, string> = {
 export async function sendSalesAutopilotReportEmail(
   to: string,
   result: {
-    scheduled: { fullName: string; email: string; stage: string }[];
-    sent: { fullName: string; email: string; stage: string }[];
-    pastDeadline: { fullName: string; email: string | null }[];
+    scheduled: { fullName: string; email: string; stage: string; cityNameCz?: string }[];
+    sent: { fullName: string; email: string; stage: string; cityNameCz?: string }[];
+    pastDeadline: { fullName: string; email: string | null; cityNameCz?: string }[];
     remainingNeverContacted: number;
     gapWarning?: string;
   },
@@ -346,19 +346,19 @@ export async function sendSalesAutopilotReportEmail(
 
   const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
 
-  const section = (title: string, rows: { fullName: string; email: string | null }[]) =>
+  const section = (title: string, rows: { fullName: string; email: string | null; cityNameCz?: string }[]) =>
     rows.length === 0 ? '' : `
       <p style="color:#111;font-weight:600;margin:20px 0 6px;">${title} (${rows.length})</p>
       <ul style="padding-left:20px;color:#555;font-size:13px;line-height:1.7;">
-        ${rows.map(r => `<li>${r.fullName}${r.email ? ` — ${r.email}` : ''}</li>`).join('')}
+        ${rows.map(r => `<li>${r.fullName}${r.cityNameCz ? ` — ${r.cityNameCz}` : ''}${r.email ? ` — ${r.email}` : ''}</li>`).join('')}
       </ul>
     `;
 
-  const byStage = (rows: { fullName: string; email: string; stage: string }[]) => {
-    const groups = new Map<string, { fullName: string; email: string }[]>();
+  const byStage = (rows: { fullName: string; email: string; stage: string; cityNameCz?: string }[]) => {
+    const groups = new Map<string, { fullName: string; email: string; cityNameCz?: string }[]>();
     for (const r of rows) {
       const list = groups.get(r.stage) ?? [];
-      list.push({ fullName: r.fullName, email: r.email });
+      list.push({ fullName: r.fullName, email: r.email, cityNameCz: r.cityNameCz });
       groups.set(r.stage, list);
     }
     return Array.from(groups.entries())

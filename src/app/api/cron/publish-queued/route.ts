@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { sendAutopilotReportEmail } from '@/lib/email';
 import { submitToIndexNow } from '@/lib/indexNow';
 import { postArticleToFacebook } from '@/lib/facebook';
+import { CITIES } from '@/data/cities';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ function requireAuth(request: NextRequest): boolean {
 }
 
 async function sendReport(result: {
-  published: { title: string; slug: string }[];
+  published: { title: string; slug: string; cityNameCz: string | null }[];
   totalPublished: number;
   target: number;
   reason?: string;
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
     where: { published: false },
     orderBy: { createdAt: 'asc' },
     take,
+    select: { id: true, slug: true, title: true, relatedCityId: true },
   });
 
   if (queued.length === 0) {
@@ -83,13 +85,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   }
 
-  const published: { id: string; slug: string; title: string }[] = [];
+  const published: { id: string; slug: string; title: string; cityNameCz: string | null }[] = [];
   for (const article of queued) {
     await prisma.article.update({
       where: { id: article.id },
       data: { published: true, createdAt: new Date() },
     });
-    published.push({ id: article.id, slug: article.slug, title: article.title });
+    const cityNameCz = CITIES.find(c => c.id === article.relatedCityId)?.nameCz ?? null;
+    published.push({ id: article.id, slug: article.slug, title: article.title, cityNameCz });
   }
 
   const newTotal = await prisma.article.count({ where: { published: true } });
