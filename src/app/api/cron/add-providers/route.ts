@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
   });
   const existingIds = new Set(existing.map(p => p.placeId));
 
-  const fresh = results.filter(r => !existingIds.has(r.placeId)).slice(0, PROVIDERS_PER_RUN);
-  const skippedDuplicates = results.length - fresh.length;
+  const notDuplicate = results.filter(r => !existingIds.has(r.placeId));
+  const skippedDuplicates = results.length - notDuplicate.length;
+  const fresh = notDuplicate.slice(0, PROVIDERS_PER_RUN);
 
   const added: { fullName: string; serviceNameCz: string; cityNameCz: string }[] = [];
   for (const place of fresh) {
