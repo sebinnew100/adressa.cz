@@ -70,10 +70,13 @@ export async function GET(request: NextRequest) {
   const fileName = `VZ-${month}-${year}.zip`;
   const url = `${BASE_URL}/${fileName}`;
 
+  console.log(`[procurement-import] starting fetch: ${url}`);
   let res: Response;
   try {
     res = await fetchWithRetry(url);
+    console.log(`[procurement-import] fetch responded: status=${res.status}, content-length=${res.headers.get('content-length')}`);
   } catch (err) {
+    console.error('[procurement-import] fetch failed after retries:', err);
     const result = { imported: 0, scanned: 0, fileName, reason: `Could not connect to ${url} after retries: ${String(err)}` };
     await sendReport(result);
     return NextResponse.json(result);
@@ -94,17 +97,22 @@ export async function GET(request: NextRequest) {
     // never build a full in-memory JS object graph for the ~230MB of JSON —
     // only the buffer itself plus one record at a time during parsing.
     const zipStream = Readable.fromWeb(res.body as unknown as import('stream/web').ReadableStream);
+    console.log('[procurement-import] downloading response body into buffer...');
     const zipBuffer = await streamToBuffer(zipStream);
+    console.log(`[procurement-import] download complete: ${zipBuffer.length} bytes. Opening zip...`);
     const zip = new AdmZip(zipBuffer);
     const entry = zip.getEntries().find(e => e.entryName.endsWith('.json'));
     if (!entry) throw new Error('No .json file found inside zip');
+    console.log(`[procurement-import] found entry ${entry.entryName}, extracting...`);
 
     const jsonBuffer = entry.getData();
+    console.log(`[procurement-import] extracted ${jsonBuffer.length} bytes of JSON. Starting stream-parse...`);
     const jsonStream = Readable.from(jsonBuffer);
     const pipelineSteps = jsonStream.pipe(parser()).pipe(pick({ filter: 'data' })).pipe(streamArray());
 
     for await (const { value } of pipelineSteps as AsyncIterable<{ value: RawRecord }>) {
       scanned++;
+      if (scanned % 2000 === 0) console.log(`[procurement-import] progress: scanned=${scanned}, imported=${imported}`);
       const vz = value.verejna_zakazka;
       if (!vz) continue;
 
@@ -138,12 +146,13 @@ export async function GET(request: NextRequest) {
       importedTitles.push({ title: vz.nazev_verejne_zakazky ?? 'Bez názvu', cpvCode });
     }
   } catch (err) {
-    console.error('Procurement import failed:', err);
+    console.error('[procurement-import] failed during parse/insert:', err);
     const result = { imported, scanned, fileName, reason: `Error during import: ${String(err)}` };
     await sendReport(result);
     return NextResponse.json(result);
   }
 
+  console.log(`[procurement-import] done: scanned=${scanned}, imported=${imported}`);
   const result = { imported, scanned, fileName, importedTitles };
   await sendReport(result);
   return NextResponse.json(result);
