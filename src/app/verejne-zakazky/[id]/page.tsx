@@ -68,6 +68,19 @@ export default async function ProcurementDetailPage({ params }: { params: { id: 
         </div>
       )}
 
+      <div className="bg-brand/5 border border-brand/20 rounded-xl p-6 mb-6 text-center">
+        <p className="font-semibold text-ink mb-1">Máte zájem o tuto zakázku?</p>
+        <p className="text-sm text-gray-600 mb-4">
+          Vytvořte si profil na adressa.cz a kontaktujte zadavatele přímo.
+        </p>
+        <Link
+          href="/register"
+          className="inline-flex items-center bg-brand hover:bg-brand-hover text-white font-semibold px-6 py-3 rounded-lg transition-colors text-sm"
+        >
+          Kontaktovat klienta
+        </Link>
+      </div>
+
       <p className="text-gray-400 text-xs">
         Přidáno na adressa.cz — {notice.createdAt.toLocaleDateString('cs-CZ', { dateStyle: 'long' })}
       </p>

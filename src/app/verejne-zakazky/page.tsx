@@ -47,6 +47,7 @@ export default async function VerejneZakazkyPage() {
                 <th className="py-3 pr-4">Kraj</th>
                 <th className="py-3 pr-4">Hodnota</th>
                 <th className="py-3 pr-4">Termín</th>
+                <th className="py-3 pr-4"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -70,6 +71,14 @@ export default async function VerejneZakazkyPage() {
                     {n.estimatedValue ? `${n.estimatedValue.toLocaleString('cs-CZ')} Kč` : 'neurčeno'}
                   </td>
                   <td className="py-3 pr-4 text-gray-600">{n.status ?? '—'}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap">
+                    <Link
+                      href="/register"
+                      className="inline-flex items-center bg-brand hover:bg-brand-hover text-white text-xs font-semibold px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      Kontaktovat klienta
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

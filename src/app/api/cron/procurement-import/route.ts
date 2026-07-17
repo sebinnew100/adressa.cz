@@ -100,6 +100,14 @@ function parseValueToNumber(value: string | null): number | null {
   return digits ? Number(digits) : null;
 }
 
+function isToday(date: Date | null): boolean {
+  if (!date) return false;
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+}
+
 export async function GET(request: NextRequest) {
   if (!requireAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -110,7 +118,7 @@ export async function GET(request: NextRequest) {
   const importedTitles: { title: string; cpvCode: string | null }[] = [];
 
   try {
-    for (let page = 1; page <= PAGES_TO_SCAN; page++) {
+    pageLoop: for (let page = 1; page <= PAGES_TO_SCAN; page++) {
       const url = page === 1 ? `${BASE_URL}/verejne-zakazky` : `${BASE_URL}/verejne-zakazky?page=${page}`;
       const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; adressa.cz)' } });
       if (!res.ok) {
@@ -122,7 +130,12 @@ export async function GET(request: NextRequest) {
       scanned += listings.length;
 
       for (const listing of listings) {
-        if (imported >= MAX_IMPORTED_PER_RUN) break;
+        if (imported >= MAX_IMPORTED_PER_RUN) break pageLoop;
+
+        // Site sorts newest-first, so once we hit a listing that isn't from
+        // today, everything after it (this page and all following pages) is
+        // older too — only today's new listings should be added each run.
+        if (!isToday(listing.publishedAt)) break pageLoop;
 
         const existing = await prisma.procurementNotice.findUnique({ where: { externalId: listing.externalId } });
         if (existing) continue;
@@ -147,7 +160,6 @@ export async function GET(request: NextRequest) {
         importedTitles.push({ title: listing.title, cpvCode: listing.categoryName });
       }
 
-      if (imported >= MAX_IMPORTED_PER_RUN) break;
       // Brief pause between page fetches — polite to the source site.
       await new Promise(r => setTimeout(r, 500));
     }
