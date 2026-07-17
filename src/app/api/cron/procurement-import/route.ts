@@ -1,42 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Readable } from 'stream';
-import { pipeline } from 'stream/promises';
-import { Agent } from 'undici';
-import AdmZip from 'adm-zip';
-import { parser } from 'stream-json';
-import { pick } from 'stream-json/filters/Pick';
-import { streamArray } from 'stream-json/streamers/StreamArray';
+import * as cheerio from 'cheerio';
 import { prisma } from '@/lib/db';
-import { serviceIdForCpvCode } from '@/lib/cpvMapping';
+import { serviceIdForPoptavejCategory } from '@/lib/poptavejCategoryMapping';
+import { sendProcurementImportReportEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
-// The Czech government server appears to reject/throttle connections from
-// Vercel's default US region — run this specific function from Europe
-// instead (much closer, and likely not caught by any geo/ASN restriction).
-export const preferredRegion = 'fra1';
+export const maxDuration = 60;
 
-const BASE_URL = 'https://isvz.nipez.cz/sites/default/files/content/opendata-rvz';
-// The government server can be slow to accept connections for this large a
-// file — default undici connect timeout (10s) isn't always enough.
-const longTimeoutAgent = new Agent({ connectTimeout: 30_000, headersTimeout: 60_000 });
-
-async function fetchWithRetry(url: string, attempts = 3): Promise<Response> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fetch(url, { dispatcher: longTimeoutAgent } as RequestInit);
-    } catch (err) {
-      lastErr = err;
-      if (i < attempts - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
-    }
-  }
-  throw lastErr;
-}
-// Only import notices whose CPV code maps to a category real users would
-// actually search adressa.cz for — most government contracts (office
-// supplies, defense equipment, etc.) are irrelevant to our audience.
-const MAX_IMPORTED_PER_RUN = 200;
+const BASE_URL = 'https://poptavej.cz';
+// How many listing pages to scan per run — the site sorts newest-first, so
+// this many pages is comfortably more than a day's worth of new listings;
+// dedup (by externalId) means re-scanning already-seen pages is harmless.
+const PAGES_TO_SCAN = 5;
+const MAX_IMPORTED_PER_RUN = 150;
 
 function requireAuth(request: NextRequest): boolean {
   const auth = request.headers.get('authorization');
@@ -45,15 +21,53 @@ function requireAuth(request: NextRequest): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-interface RawRecord {
-  verejna_zakazka?: {
-    identifikator_NIPEZ?: string;
-    nazev_verejne_zakazky?: string;
-    predmet?: { popis_predmetu?: string; hlavni_kod_CPV?: string; mista_plneni?: { nuts?: string }[] };
-    casti_verejne_zakazky?: {
-      zadavaci_postup_pro_cast?: { stav?: string; datum_zahajeni_zadavaciho_postupu?: string };
-    }[];
-  };
+interface ScrapedListing {
+  externalId: string;
+  title: string;
+  detailUrl: string;
+  value: string | null;
+  categorySlug: string | null;
+  categoryName: string | null;
+  regionName: string | null;
+  deadlineText: string | null;
+}
+
+function parseListingsFromHtml(html: string): ScrapedListing[] {
+  const $ = cheerio.load(html);
+  const listings: ScrapedListing[] = [];
+
+  $('.procurement-list .row.procurement').each((_, el) => {
+    const row = $(el);
+    const link = row.find('.col.nazev a').first();
+    const href = link.attr('href') ?? '';
+    const idMatch = href.match(/\/verejna-zakazka\/(VZ\d+)\//);
+    if (!idMatch) return;
+
+    const categoryLink = row.find('a.col.category').first();
+    const categoryHref = categoryLink.attr('href') ?? '';
+    const categorySlugMatch = categoryHref.match(/\/verejne-zakazky\/([a-z0-9-]+)$/);
+
+    const valueText = row.find('.col.cena').first().text().trim();
+
+    listings.push({
+      externalId: idMatch[1],
+      title: link.text().trim(),
+      detailUrl: `${BASE_URL}${href}`,
+      value: valueText && valueText !== 'neurčeno' ? valueText : null,
+      categorySlug: categorySlugMatch ? categorySlugMatch[1] : null,
+      categoryName: categoryLink.text().trim() || null,
+      regionName: row.find('a.col.location').first().text().trim() || null,
+      deadlineText: row.find('.col.ukonceni').first().text().trim() || null,
+    });
+  });
+
+  return listings;
+}
+
+function parseValueToNumber(value: string | null): number | null {
+  if (!value) return null;
+  const digits = value.replace(/[^\d]/g, '');
+  return digits ? Number(digits) : null;
 }
 
 export async function GET(request: NextRequest) {
@@ -61,109 +75,62 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // A given month's data isn't published until after that month ends, so
-  // always request the previous month's file, not the current one.
-  const now = new Date();
-  const previousMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  const year = previousMonth.getUTCFullYear();
-  const month = String(previousMonth.getUTCMonth() + 1).padStart(2, '0');
-  const fileName = `VZ-${month}-${year}.zip`;
-  const url = `${BASE_URL}/${fileName}`;
-
-  console.log(`[procurement-import] starting fetch: ${url}`);
-  let res: Response;
-  try {
-    res = await fetchWithRetry(url);
-    console.log(`[procurement-import] fetch responded: status=${res.status}, content-length=${res.headers.get('content-length')}`);
-  } catch (err) {
-    console.error('[procurement-import] fetch failed after retries:', err);
-    const result = { imported: 0, scanned: 0, fileName, reason: `Could not connect to ${url} after retries: ${String(err)}` };
-    await sendReport(result);
-    return NextResponse.json(result);
-  }
-  if (!res.ok || !res.body) {
-    const result = { imported: 0, scanned: 0, fileName, reason: `Could not download ${url} (status ${res.status})` };
-    await sendReport(result);
-    return NextResponse.json(result);
-  }
-
   let scanned = 0;
   let imported = 0;
   const importedTitles: { title: string; cpvCode: string | null }[] = [];
 
   try {
-    // Buffer the compressed zip fully (~30MB — fine in memory), extract the
-    // single JSON entry as a buffer, then stream-*parse* that buffer so we
-    // never build a full in-memory JS object graph for the ~230MB of JSON —
-    // only the buffer itself plus one record at a time during parsing.
-    const zipStream = Readable.fromWeb(res.body as unknown as import('stream/web').ReadableStream);
-    console.log('[procurement-import] downloading response body into buffer...');
-    const zipBuffer = await streamToBuffer(zipStream);
-    console.log(`[procurement-import] download complete: ${zipBuffer.length} bytes. Opening zip...`);
-    const zip = new AdmZip(zipBuffer);
-    const entry = zip.getEntries().find(e => e.entryName.endsWith('.json'));
-    if (!entry) throw new Error('No .json file found inside zip');
-    console.log(`[procurement-import] found entry ${entry.entryName}, extracting...`);
+    for (let page = 1; page <= PAGES_TO_SCAN; page++) {
+      const url = page === 1 ? `${BASE_URL}/verejne-zakazky` : `${BASE_URL}/verejne-zakazky?page=${page}`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; adressa.cz)' } });
+      if (!res.ok) {
+        console.warn(`[procurement-import] page ${page} fetch failed: ${res.status}`);
+        continue;
+      }
+      const html = await res.text();
+      const listings = parseListingsFromHtml(html);
+      scanned += listings.length;
 
-    const jsonBuffer = entry.getData();
-    console.log(`[procurement-import] extracted ${jsonBuffer.length} bytes of JSON. Starting stream-parse...`);
-    const jsonStream = Readable.from(jsonBuffer);
-    const pipelineSteps = jsonStream.pipe(parser()).pipe(pick({ filter: 'data' })).pipe(streamArray());
+      for (const listing of listings) {
+        if (imported >= MAX_IMPORTED_PER_RUN) break;
 
-    for await (const { value } of pipelineSteps as AsyncIterable<{ value: RawRecord }>) {
-      scanned++;
-      if (scanned % 2000 === 0) console.log(`[procurement-import] progress: scanned=${scanned}, imported=${imported}`);
-      const vz = value.verejna_zakazka;
-      if (!vz) continue;
+        const existing = await prisma.procurementNotice.findUnique({ where: { externalId: listing.externalId } });
+        if (existing) continue;
 
-      const cpvCode = vz.predmet?.hlavni_kod_CPV ?? null;
-      const relatedServiceId = serviceIdForCpvCode(cpvCode);
-      if (!relatedServiceId) continue; // not relevant to our audience — skip
+        const relatedServiceId = serviceIdForPoptavejCategory(listing.categorySlug);
 
-      const externalId = vz.identifikator_NIPEZ;
-      if (!externalId || imported >= MAX_IMPORTED_PER_RUN) continue;
+        await prisma.procurementNotice.create({
+          data: {
+            externalId: listing.externalId,
+            title: listing.title,
+            description: null,
+            cpvCode: listing.categoryName,
+            regionCode: listing.regionName,
+            relatedServiceId,
+            status: listing.deadlineText,
+            estimatedValue: parseValueToNumber(listing.value),
+            procedureStartAt: null,
+            sourceUrl: listing.detailUrl,
+          },
+        });
+        imported++;
+        importedTitles.push({ title: listing.title, cpvCode: listing.categoryName });
+      }
 
-      const existing = await prisma.procurementNotice.findUnique({ where: { externalId } });
-      if (existing) continue;
-
-      const postup = vz.casti_verejne_zakazky?.[0]?.zadavaci_postup_pro_cast;
-      await prisma.procurementNotice.create({
-        data: {
-          externalId,
-          title: vz.nazev_verejne_zakazky ?? 'Bez názvu',
-          description: vz.predmet?.popis_predmetu?.slice(0, 1000) ?? null,
-          cpvCode,
-          regionCode: vz.predmet?.mista_plneni?.[0]?.nuts ?? null,
-          relatedServiceId,
-          status: postup?.stav ?? null,
-          procedureStartAt: postup?.datum_zahajeni_zadavaciho_postupu
-            ? new Date(postup.datum_zahajeni_zadavaciho_postupu)
-            : null,
-          sourceUrl: `https://nen.nipez.cz/verejne-zakazky/detail-zakazky/${externalId}`,
-        },
-      });
-      imported++;
-      importedTitles.push({ title: vz.nazev_verejne_zakazky ?? 'Bez názvu', cpvCode });
+      if (imported >= MAX_IMPORTED_PER_RUN) break;
+      // Brief pause between page fetches — polite to the source site.
+      await new Promise(r => setTimeout(r, 500));
     }
   } catch (err) {
-    console.error('[procurement-import] failed during parse/insert:', err);
-    const result = { imported, scanned, fileName, reason: `Error during import: ${String(err)}` };
+    console.error('[procurement-import] scrape failed:', err);
+    const result = { imported, scanned, fileName: 'poptavej.cz scrape', reason: `Error during scrape: ${String(err)}` };
     await sendReport(result);
     return NextResponse.json(result);
   }
 
-  console.log(`[procurement-import] done: scanned=${scanned}, imported=${imported}`);
-  const result = { imported, scanned, fileName, importedTitles };
+  const result = { imported, scanned, fileName: 'poptavej.cz scrape', importedTitles };
   await sendReport(result);
   return NextResponse.json(result);
-}
-
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  await pipeline(stream, async function* (source) {
-    for await (const chunk of source) chunks.push(chunk as Buffer);
-  });
-  return Buffer.concat(chunks);
 }
 
 async function sendReport(result: {
@@ -175,7 +142,6 @@ async function sendReport(result: {
 }) {
   const to = process.env.AUTOPILOT_REPORT_EMAIL;
   if (!to) return;
-  const { sendProcurementImportReportEmail } = await import('@/lib/email');
   try {
     await sendProcurementImportReportEmail(to, result);
   } catch (err) {

@@ -8,6 +8,7 @@ export const en: Translations = {
     articles: 'Articles',
     register: 'List Your Service',
     faq: 'FAQ',
+    procurement: 'Contracts',
   },
   hero: {
     title: 'Find a local expert',

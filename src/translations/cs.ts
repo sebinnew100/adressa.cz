@@ -6,6 +6,7 @@ export const cs = {
     articles: 'Články',
     register: 'Přidat profil',
     faq: 'FAQ',
+    procurement: 'Zakázky',
   },
   hero: {
     title: 'Najděte místního odborníka',
