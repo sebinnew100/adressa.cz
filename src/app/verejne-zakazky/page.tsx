@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { SERVICES } from '@/data/services';
 
@@ -51,13 +52,9 @@ export default async function VerejneZakazkyPage() {
               {notices.map(n => (
                 <tr key={n.id} className="hover:bg-gray-50">
                   <td className="py-3 pr-4">
-                    {n.sourceUrl ? (
-                      <a href={n.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline font-medium">
-                        {n.title}
-                      </a>
-                    ) : (
-                      <span className="font-medium">{n.title}</span>
-                    )}
+                    <Link href={`/verejne-zakazky/${n.externalId}`} className="text-brand hover:underline font-medium">
+                      {n.title}
+                    </Link>
                   </td>
                   <td className="py-3 pr-4 text-gray-600">
                     {n.relatedServiceId
