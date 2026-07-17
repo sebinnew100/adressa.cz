@@ -37,6 +37,12 @@ export default async function ProcurementDetailPage({ params }: { params: { id: 
 
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div>
+          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Zveřejněno</p>
+          <p className="font-medium">
+            {(notice.publishedAt ?? notice.createdAt).toLocaleDateString('cs-CZ', { dateStyle: 'long' })}
+          </p>
+        </div>
+        <div>
           <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Kategorie</p>
           <p className="font-medium">{serviceName ?? notice.cpvCode ?? '—'}</p>
         </div>
@@ -63,7 +69,7 @@ export default async function ProcurementDetailPage({ params }: { params: { id: 
       )}
 
       <p className="text-gray-400 text-xs">
-        Zveřejněno na adressa.cz — {notice.createdAt.toLocaleDateString('cs-CZ', { dateStyle: 'long' })}
+        Přidáno na adressa.cz — {notice.createdAt.toLocaleDateString('cs-CZ', { dateStyle: 'long' })}
       </p>
     </div>
   );

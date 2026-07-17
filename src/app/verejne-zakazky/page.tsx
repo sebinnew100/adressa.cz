@@ -41,6 +41,7 @@ export default async function VerejneZakazkyPage() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-left text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                <th className="py-3 pr-4">Datum</th>
                 <th className="py-3 pr-4">Zakázka</th>
                 <th className="py-3 pr-4">Kategorie</th>
                 <th className="py-3 pr-4">Kraj</th>
@@ -51,6 +52,9 @@ export default async function VerejneZakazkyPage() {
             <tbody className="divide-y divide-gray-100">
               {notices.map(n => (
                 <tr key={n.id} className="hover:bg-gray-50">
+                  <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">
+                    {(n.publishedAt ?? n.createdAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                  </td>
                   <td className="py-3 pr-4">
                     <Link href={`/verejne-zakazky/${n.externalId}`} className="text-brand hover:underline font-medium">
                       {n.title}

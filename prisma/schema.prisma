@@ -136,15 +136,15 @@ model GameSubmission {
 
 model ProcurementNotice {
   id               String   @id @default(cuid())
-  externalId       String   @unique // identifikator_NIPEZ — dedup key across monthly imports
+  externalId       String   @unique // poptavej.cz listing ID (e.g. VZ819883) — dedup key across scrapes
   title            String
   description      String?  @db.Text
-  cpvCode          String?
-  regionCode       String?  // NUTS region code, e.g. CZ032
-  relatedServiceId String?  // mapped from CPV code where possible
-  status           String?
+  cpvCode          String?  // category name, e.g. "Stavebnictví"
+  regionCode       String?  // region name, e.g. "Zlínský"
+  relatedServiceId String?  // mapped from category where possible
+  status           String?  // deadline text, e.g. "31 dní do ukončení"
   estimatedValue   Float?
-  procedureStartAt DateTime?
+  publishedAt      DateTime? // when the listing was published on the source site
   sourceUrl        String?
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
