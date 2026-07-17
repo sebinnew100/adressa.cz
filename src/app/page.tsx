@@ -75,6 +75,32 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Public procurement CTA */}
+        <section style={{ backgroundColor: '#eff6ff', borderTop: '3px solid #2563eb', borderBottom: '3px solid #2563eb' }} className="py-10">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#2563eb' }}>
+                {language === 'cs' ? 'Pro živnostníky a firmy' : 'For tradespeople and businesses'}
+              </p>
+              <h2 className="text-2xl font-bold" style={{ color: '#1e3a5f' }}>
+                {language === 'cs' ? 'Veřejné zakázky' : 'Public procurement'}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {language === 'cs'
+                  ? 'Prohlédněte si aktuální veřejné zakázky ve stavebnictví, IT a dalších oborech.'
+                  : 'Browse current public contracts in construction, IT, and other fields.'}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/verejne-zakazky')}
+              className="flex-shrink-0 font-bold px-8 py-3.5 rounded-lg transition-colors text-sm whitespace-nowrap shadow-md hover:opacity-90"
+              style={{ backgroundColor: '#2563eb', color: '#fff' }}
+            >
+              {language === 'cs' ? 'Zobrazit zakázky →' : 'View contracts →'}
+            </button>
+          </div>
+        </section>
+
         <CategoryGrid />
         <HowItWorks />
 
