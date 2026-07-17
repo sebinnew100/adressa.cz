@@ -11,6 +11,10 @@ import { serviceIdForCpvCode } from '@/lib/cpvMapping';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+// The Czech government server appears to reject/throttle connections from
+// Vercel's default US region — run this specific function from Europe
+// instead (much closer, and likely not caught by any geo/ASN restriction).
+export const preferredRegion = 'fra1';
 
 const BASE_URL = 'https://isvz.nipez.cz/sites/default/files/content/opendata-rvz';
 // The government server can be slow to accept connections for this large a
