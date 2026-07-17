@@ -44,6 +44,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  try {
+    return await runPublishQueued();
+  } catch (err) {
+    console.error('[publish-queued] unhandled failure:', err);
+    const result = { published: [], totalPublished: -1, target: AUTOPILOT_TARGET_TOTAL, reason: `⚠️ Unhandled error: ${String(err)}` };
+    await sendReport(result);
+    return NextResponse.json(result, { status: 500 });
+  }
+}
+
+async function runPublishQueued() {
   const currentTotal = await prisma.article.count({ where: { published: true } });
   if (currentTotal >= AUTOPILOT_TARGET_TOTAL) {
     const result = { published: [], totalPublished: currentTotal, target: AUTOPILOT_TARGET_TOTAL, done: true, reason: 'target reached' };

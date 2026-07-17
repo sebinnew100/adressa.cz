@@ -40,6 +40,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  try {
+    return await runAddProviders();
+  } catch (err) {
+    console.error('[add-providers] unhandled failure:', err);
+    const result = { added: [], query: '', skippedDuplicates: 0, reason: `⚠️ Unhandled error: ${String(err)}` };
+    await sendReport(result);
+    return NextResponse.json(result, { status: 500 });
+  }
+}
+
+async function runAddProviders() {
   // Deterministic daily rotation through every service+city combination —
   // no extra state/table needed, just advances by one combo per day.
   const combos = SERVICES.flatMap(s => CITIES.map(c => ({ service: s, city: c })));

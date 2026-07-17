@@ -80,6 +80,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  try {
+    return await runSalesAutopilot();
+  } catch (err) {
+    console.error('[sales-autopilot] unhandled failure:', err);
+    const result = { scheduled: [], sent: [], pastDeadline: [], remainingNeverContacted: -1, gapWarning: `⚠️ Unhandled error: ${String(err)}` };
+    await sendReport(result);
+    return NextResponse.json(result, { status: 500 });
+  }
+}
+
+async function runSalesAutopilot() {
   const now = new Date();
 
   // Detect a skipped scheduled run (e.g. Vercel Cron dropping a run during a
