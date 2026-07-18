@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         mission: {
           include: { provider: { select: { fullName: true, serviceId: true, cityId: true } } },
         },
+        player: { select: { name: true, email: true, picture: true } },
       },
     });
     return NextResponse.json(submissions);

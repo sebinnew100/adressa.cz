@@ -29,6 +29,7 @@ const nextConfig = {
       { hostname: '*.public.blob.vercel-storage.com' },
       { hostname: 'static.wixstatic.com' },
       { hostname: 'www.dentalcarecb.cz' },
+      { hostname: 'lh3.googleusercontent.com' },
     ],
   },
 };

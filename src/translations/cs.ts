@@ -120,6 +120,12 @@ export const cs = {
     level: (n: number) => `Lv. ${n}`,
     nicknamePlaceholder: 'Přezdívka',
     setNickname: 'Nastavit přezdívku',
+    signIn: {
+      title: 'Přihlaste se a hrajte',
+      body: 'Pro hraní Herního režimu je potřeba účet Google — mise, body a žebříček jsou vázané na váš profil.',
+      button: '🔐 Přihlásit se přes Google',
+      signOut: 'Odhlásit se',
+    },
     bannerText: 'Navštivte podniky, splňte misi a nahrajte fotku jako důkaz. Po schválení adminem získáte body — 1000 bodů = 200 Kč.',
     leaderboardTitle: '🏆 Žebříček hráčů',
     you: '(vy)',

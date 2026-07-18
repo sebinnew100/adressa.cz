@@ -6,21 +6,28 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const submissions = await prisma.gameSubmission.findMany({
-      where: { status: 'approved' },
-      select: { deviceId: true, nickname: true, pointsAwarded: true, createdAt: true },
-      orderBy: { createdAt: 'asc' },
+      where: { status: 'approved', playerId: { not: null } },
+      select: {
+        playerId: true,
+        pointsAwarded: true,
+        player: { select: { name: true, nickname: true, picture: true } },
+      },
     });
 
-    const totals = new Map<string, { points: number; nickname: string | null }>();
+    const totals = new Map<string, { points: number; nickname: string | null; picture: string | null }>();
     for (const s of submissions) {
-      const entry = totals.get(s.deviceId) ?? { points: 0, nickname: null };
+      if (!s.playerId) continue;
+      const entry = totals.get(s.playerId) ?? {
+        points: 0,
+        nickname: s.player?.nickname ?? s.player?.name ?? null,
+        picture: s.player?.picture ?? null,
+      };
       entry.points += s.pointsAwarded ?? 0;
-      if (s.nickname) entry.nickname = s.nickname;
-      totals.set(s.deviceId, entry);
+      totals.set(s.playerId, entry);
     }
 
     const leaderboard = Array.from(totals.entries())
-      .map(([deviceId, v]) => ({ deviceId, nickname: v.nickname, points: v.points }))
+      .map(([playerId, v]) => ({ playerId, nickname: v.nickname, picture: v.picture, points: v.points }))
       .filter(e => e.points > 0)
       .sort((a, b) => b.points - a.points)
       .slice(0, 20);

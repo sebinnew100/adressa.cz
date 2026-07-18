@@ -122,6 +122,12 @@ export const en: Translations = {
     level: (n: number) => `Lv. ${n}`,
     nicknamePlaceholder: 'Nickname',
     setNickname: 'Set nickname',
+    signIn: {
+      title: 'Sign in to play',
+      body: 'A Google account is required to play Game Mode — missions, points, and the leaderboard are tied to your profile.',
+      button: '🔐 Sign in with Google',
+      signOut: 'Sign out',
+    },
     bannerText: 'Visit a place, complete the mission and upload a photo as proof. Once approved by an admin you get points — 1000 points = 200 Kč.',
     leaderboardTitle: '🏆 Leaderboard',
     you: '(you)',

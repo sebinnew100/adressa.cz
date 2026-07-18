@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AuthSessionProvider } from '@/components/AuthSessionProvider';
 
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
@@ -83,7 +84,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             gtag('config', 'G-BNF8NTBG6T');
           `}
         </Script>
-        <LanguageProvider>{children}</LanguageProvider>
+        <AuthSessionProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </AuthSessionProvider>
         <Analytics />
       </body>
     </html>

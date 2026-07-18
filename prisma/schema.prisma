@@ -123,8 +123,10 @@ model SalesContact {
 
 model GameSubmission {
   id            String      @id @default(cuid())
-  deviceId      String
+  deviceId      String?
   nickname      String?
+  playerId      String?
+  player        Player?     @relation(fields: [playerId], references: [id], onDelete: Cascade)
   missionId     String
   mission       GameMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   photoPath     String
@@ -132,6 +134,16 @@ model GameSubmission {
   pointsAwarded Int?
   createdAt     DateTime    @default(now())
   reviewedAt    DateTime?
+}
+
+model Player {
+  id          String           @id // Google `sub` — stable identifier, not a generated cuid
+  email       String?
+  name        String?
+  picture     String?
+  nickname    String?
+  createdAt   DateTime         @default(now())
+  submissions GameSubmission[]
 }
 
 model ProcurementNotice {

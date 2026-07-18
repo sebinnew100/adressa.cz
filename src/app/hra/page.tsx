@@ -4,17 +4,19 @@ import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
-import { getOrCreateDeviceId, getNickname, setNickname, hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
+import { hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
 import { TourOverlay, type TourStep } from '@/components/game/TourOverlay';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 import type { Mission } from '@/types/game';
 
 interface LeaderboardEntry {
-  deviceId: string;
+  playerId: string;
   nickname: string | null;
+  picture: string | null;
   points: number;
 }
 
@@ -51,6 +53,8 @@ function urgencyClass(ms: number): string {
 
 export default function GameModePage() {
   const { language, t, setLanguage } = useLanguage();
+  const { data: session, status: sessionStatus } = useSession();
+  const playerId = (session?.user as { id?: string } | undefined)?.id;
   const TOUR_STEPS: TourStep[] = TOUR_TARGETS.map((target, i) => ({
     ...target,
     title: t.game.tour.steps[i].title,
@@ -64,7 +68,6 @@ export default function GameModePage() {
   const [selected, setSelected] = useState<Mission | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const [deviceId, setDeviceId] = useState('');
   const [nickname, setNicknameState] = useState('');
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
@@ -81,9 +84,9 @@ export default function GameModePage() {
     setLoading(false);
   }, []);
 
-  const fetchStatus = useCallback(async (id: string) => {
-    if (!id) return;
-    const res = await fetch(`/api/game/status?deviceId=${id}`);
+  const fetchStatus = useCallback(async () => {
+    const res = await fetch('/api/game/status');
+    if (!res.ok) return;
     const data = await res.json();
     if (typeof data.totalPoints === 'number') setTotalPoints(data.totalPoints);
   }, []);
@@ -94,10 +97,15 @@ export default function GameModePage() {
     if (Array.isArray(data)) setLeaderboard(data);
   }, []);
 
-  const saveNickname = () => {
-    setNickname(nicknameDraft);
-    setNicknameState(nicknameDraft.trim().slice(0, 20));
+  const saveNickname = async () => {
+    const trimmed = nicknameDraft.trim().slice(0, 20);
     setEditingNickname(false);
+    setNicknameState(trimmed);
+    await fetch('/api/game/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: trimmed || null }),
+    });
   };
 
   const endTour = () => {
@@ -159,17 +167,16 @@ export default function GameModePage() {
   }, [tourActive, tourStep]);
 
   useEffect(() => {
-    const id = getOrCreateDeviceId();
-    setDeviceId(id);
-    setNicknameState(getNickname());
-    fetchStatus(id);
+    if (sessionStatus !== 'authenticated') return;
+    setNicknameState(session?.user?.name ?? '');
+    fetchStatus();
     fetchLeaderboard();
     if (!hasSeenGameOnboarding()) {
       setTourStep(0);
       setTourActive(true);
     }
 
-    const statusTimer = setInterval(() => fetchStatus(id), 15000);
+    const statusTimer = setInterval(fetchStatus, 15000);
     const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
     const tickTimer = setInterval(() => setNow(Date.now()), 1000);
 
@@ -178,13 +185,15 @@ export default function GameModePage() {
       clearInterval(statusTimer);
       clearInterval(leaderboardTimer);
     };
-  }, [fetchStatus, fetchLeaderboard]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus, fetchStatus, fetchLeaderboard]);
 
   useEffect(() => {
+    if (sessionStatus !== 'authenticated') return;
     fetchMissions(city);
     const missionsTimer = setInterval(() => fetchMissions(city), 30000);
     return () => clearInterval(missionsTimer);
-  }, [city, fetchMissions]);
+  }, [city, sessionStatus, fetchMissions]);
 
   const level = Math.floor(totalPoints / 200) + 1;
 
@@ -195,7 +204,6 @@ export default function GameModePage() {
     setSubmitMessage('');
 
     const formData = new FormData(e.currentTarget);
-    formData.set('deviceId', deviceId);
     formData.set('missionId', selected.id);
     formData.set('nickname', nickname);
 
@@ -208,6 +216,35 @@ export default function GameModePage() {
     }
     setUploading(false);
   };
+
+  if (sessionStatus === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <span className="text-gray-500">{t.game.loadingMissions}</span>
+      </div>
+    );
+  }
+
+  if (sessionStatus === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+        <div className="max-w-sm w-full text-center bg-gray-900 border border-purple-900/50 rounded-2xl p-8">
+          <div className="text-4xl mb-4">🎮</div>
+          <h1 className="text-xl font-bold mb-2">{t.game.signIn.title}</h1>
+          <p className="text-gray-400 text-sm mb-6">{t.game.signIn.body}</p>
+          <button
+            onClick={() => signIn('google', { callbackUrl: '/hra' })}
+            className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3 rounded-lg transition-colors"
+          >
+            {t.game.signIn.button}
+          </button>
+          <Link href="/" className="block mt-4 text-gray-500 hover:text-gray-300 text-sm">
+            {t.game.backToSite}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -272,6 +309,21 @@ export default function GameModePage() {
               🏷️ {nickname || t.game.setNickname}
             </button>
           )}
+          {session?.user?.image && (
+            <Image
+              src={session.user.image}
+              alt={session.user.name ?? ''}
+              width={28}
+              height={28}
+              className="rounded-full border border-gray-700"
+            />
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: '/hra' })}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors"
+          >
+            {t.game.signIn.signOut}
+          </button>
           <Link
             href="/"
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-3 py-1.5 rounded-full transition-colors"
@@ -295,12 +347,12 @@ export default function GameModePage() {
             </h2>
             <div className="space-y-1.5">
               {leaderboard.map((entry, i) => {
-                const isMe = entry.deviceId === deviceId;
+                const isMe = entry.playerId === playerId;
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-                const displayName = entry.nickname || t.game.playerFallback(entry.deviceId.slice(-4).toUpperCase());
+                const displayName = entry.nickname || t.game.playerFallback(entry.playerId.slice(-4).toUpperCase());
                 return (
                   <div
-                    key={entry.deviceId}
+                    key={entry.playerId}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
                       isMe ? 'bg-purple-600/20 border border-purple-500/50' : 'bg-gray-800/50'
                     }`}

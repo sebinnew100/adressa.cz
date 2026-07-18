@@ -7,17 +7,25 @@ import { useRouter } from 'next/navigation';
 
 interface Submission {
   id: string;
-  deviceId: string;
+  deviceId: string | null;
   nickname: string | null;
   photoPath: string;
   status: string;
   pointsAwarded: number | null;
   createdAt: string;
+  player: { name: string | null; email: string | null; picture: string | null } | null;
   mission: {
     rewardPoints: number;
     isGrandChallenge: boolean;
     provider: { fullName: string; serviceId: string; cityId: string };
   };
+}
+
+function playerLabel(s: Submission): string {
+  if (s.player) {
+    return s.nickname || s.player.name || s.player.email || 'Hráč bez jména';
+  }
+  return s.nickname || (s.deviceId ? `Hráč #${s.deviceId.slice(-4).toUpperCase()}` : 'Neznámý hráč');
 }
 
 export default function AdminGamePage() {
@@ -83,8 +91,11 @@ export default function AdminGamePage() {
                     Odměna: {s.mission.rewardPoints} bodů {s.mission.isGrandChallenge && '👑'}
                   </div>
                   <div className="text-xs text-purple-400 mt-1">
-                    🏷️ {s.nickname || `Hráč #${s.deviceId.slice(-4).toUpperCase()}`}
+                    🏷️ {playerLabel(s)}
                   </div>
+                  {s.player?.email && (
+                    <div className="text-xs text-gray-500 mt-0.5">✉️ {s.player.email}</div>
+                  )}
                   <div className="text-xs text-gray-500 mt-1">{new Date(s.createdAt).toLocaleString('cs-CZ')}</div>
                   <div className="flex gap-2 mt-3">
                     <button
