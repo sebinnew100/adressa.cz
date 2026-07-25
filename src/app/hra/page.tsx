@@ -319,7 +319,7 @@ export default function GameModePage() {
             ⭐ {t.game.level(level)}
           </span>
           <button
-            onClick={() => { if (availablePoints >= PAYOUT_POINTS_THRESHOLD && !pendingPayout) setWithdrawOpen(true); }}
+            onClick={() => { if (availablePoints >= PAYOUT_POINTS_THRESHOLD && !pendingPayout) { setWithdrawMessage(''); setWithdrawOpen(true); } }}
             disabled={availablePoints < PAYOUT_POINTS_THRESHOLD || pendingPayout}
             className={`font-bold px-3 py-1.5 rounded-full transition-colors ${
               pendingPayout
@@ -577,10 +577,10 @@ export default function GameModePage() {
 
       {/* Withdraw modal */}
       {withdrawOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[9999]" onClick={() => !withdrawSubmitting && setWithdrawOpen(false)}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[9999]" onClick={() => { if (!withdrawSubmitting) { setWithdrawOpen(false); setWithdrawMessage(''); } }}>
           <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
             <button
-              onClick={() => setWithdrawOpen(false)}
+              onClick={() => { setWithdrawOpen(false); setWithdrawMessage(''); }}
               aria-label={t.game.withdraw.cancel}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-lg leading-none transition-colors"
             >
@@ -620,7 +620,7 @@ export default function GameModePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setWithdrawOpen(false)}
+                    onClick={() => { setWithdrawOpen(false); setWithdrawMessage(''); }}
                     className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
                   >
                     {t.game.withdraw.cancel}
