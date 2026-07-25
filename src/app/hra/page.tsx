@@ -286,6 +286,9 @@ export default function GameModePage() {
           </span>
           <span className="text-gray-600">|</span>
           <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 {t.game.gameMode}</span>
+          <span style={{ color: 'red', fontWeight: 900, fontSize: '11px' }}>
+            DEBUG tp={JSON.stringify(totalPoints)} ap={JSON.stringify(availablePoints)} thr={JSON.stringify(PAYOUT_POINTS_THRESHOLD)} pend={JSON.stringify(pendingPayout)} sess={sessionStatus}
+          </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <div className="flex items-center rounded-full border border-gray-700 overflow-hidden text-xs font-bold">
