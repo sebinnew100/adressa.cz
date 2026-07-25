@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface Player {
@@ -33,9 +34,12 @@ export default function AdminPlayersPage() {
           ← Zpět
         </button>
         <h1 className="font-bold">🎮 Game Mode — hráči ({players.length})</h1>
+        <Link href="/admin/payouts" className="ml-auto text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-colors">
+          💸 Výplaty
+        </Link>
         <a
           href="/api/admin/players/export"
-          className="ml-auto text-sm bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-lg transition-colors"
+          className="text-sm bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-lg transition-colors"
         >
           ⬇ Stáhnout Excel (CSV)
         </a>

@@ -176,6 +176,21 @@ export const cs = {
       error: 'Polohu se nepodařilo zjistit. Zkontrolujte, že jsou zapnuté služby polohy v nastavení vašeho zařízení (Windows/telefon), poté zkuste znovu.',
       retry: 'Zkusit znovu',
     },
+    withdraw: {
+      progressLabel: (have: number, need: number) => `${have} / ${need} bodů k výběru`,
+      button: '💸 Vybrat peníze',
+      locked: (remaining: number) => `🔒 Chybí ${remaining} bodů`,
+      pending: '⏳ Žádost odeslána',
+      modalTitle: 'Vybrat peníze',
+      modalBody: (amount: number) => `Máte dost bodů na výplatu ${amount} Kč. Zadejte údaje k platbě — peníze pošleme ručně na tento účet.`,
+      accountNameLabel: 'Jméno majitele účtu',
+      accountDetailsLabel: 'Číslo účtu (IBAN nebo číslo/kód banky)',
+      submit: 'Odeslat žádost',
+      submitting: 'Odesílám...',
+      success: '✅ Žádost o výběr byla odeslána. Peníze vám pošleme ručně v nejbližších dnech.',
+      error: '❌ Nepodařilo se odeslat žádost. Zkuste to znovu.',
+      cancel: 'Zrušit',
+    },
   },
 };
 

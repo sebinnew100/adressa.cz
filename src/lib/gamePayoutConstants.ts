@@ -1,0 +1,2 @@
+export const PAYOUT_POINTS_THRESHOLD = 1000;
+export const PAYOUT_AMOUNT_CZK = 200;

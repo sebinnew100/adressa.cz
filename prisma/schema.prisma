@@ -137,13 +137,27 @@ model GameSubmission {
 }
 
 model Player {
-  id          String           @id // Google `sub` — stable identifier, not a generated cuid
-  email       String?
-  name        String?
-  picture     String?
-  nickname    String?
-  createdAt   DateTime         @default(now())
-  submissions GameSubmission[]
+  id             String           @id // Google `sub` — stable identifier, not a generated cuid
+  email          String?
+  name           String?
+  picture        String?
+  nickname       String?
+  createdAt      DateTime         @default(now())
+  submissions    GameSubmission[]
+  payoutRequests PayoutRequest[]
+}
+
+model PayoutRequest {
+  id             String    @id @default(cuid())
+  playerId       String
+  player         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  pointsSpent    Int       @default(1000)
+  amountCzk      Int       @default(200)
+  accountName    String
+  accountDetails String
+  status         String    @default("pending") // pending | paid
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
 }
 
 model ProcurementNotice {

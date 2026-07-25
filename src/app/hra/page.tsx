@@ -8,6 +8,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { hasSeenGameOnboarding, markGameOnboardingSeen } from '@/lib/gameDevice';
+import { PAYOUT_POINTS_THRESHOLD, PAYOUT_AMOUNT_CZK } from '@/lib/gamePayoutConstants';
 import { TourOverlay, type TourStep } from '@/components/game/TourOverlay';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -75,6 +76,13 @@ export default function GameModePage() {
   const [city, setCity] = useState<typeof GAME_CITIES[number]>('ceske-budejovice');
   const [tourActive, setTourActive] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [pendingPayout, setPendingPayout] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawAccountName, setWithdrawAccountName] = useState('');
+  const [withdrawAccountDetails, setWithdrawAccountDetails] = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawMessage, setWithdrawMessage] = useState('');
 
   const fetchMissions = useCallback(async (cityId: string) => {
     setLoading(true);
@@ -89,7 +97,29 @@ export default function GameModePage() {
     if (!res.ok) return;
     const data = await res.json();
     if (typeof data.totalPoints === 'number') setTotalPoints(data.totalPoints);
+    if (typeof data.availablePoints === 'number') setAvailablePoints(data.availablePoints);
+    if (typeof data.pendingPayout === 'boolean') setPendingPayout(data.pendingPayout);
   }, []);
+
+  const handleWithdraw = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setWithdrawSubmitting(true);
+    setWithdrawMessage('');
+
+    const res = await fetch('/api/game/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountName: withdrawAccountName, accountDetails: withdrawAccountDetails }),
+    });
+    if (res.ok) {
+      setWithdrawMessage(t.game.withdraw.success);
+      await fetchStatus();
+      setTimeout(() => { setWithdrawOpen(false); setWithdrawMessage(''); setWithdrawAccountName(''); setWithdrawAccountDetails(''); }, 2500);
+    } else {
+      setWithdrawMessage(t.game.withdraw.error);
+    }
+    setWithdrawSubmitting(false);
+  };
 
   const fetchLeaderboard = useCallback(async () => {
     const res = await fetch('/api/game/leaderboard');
@@ -284,6 +314,19 @@ export default function GameModePage() {
           <span className="bg-purple-500/10 text-purple-300 font-bold px-3 py-1.5 rounded-full">
             ⭐ {t.game.level(level)}
           </span>
+          <button
+            onClick={() => { if (availablePoints >= PAYOUT_POINTS_THRESHOLD && !pendingPayout) setWithdrawOpen(true); }}
+            disabled={availablePoints < PAYOUT_POINTS_THRESHOLD || pendingPayout}
+            className={`font-bold px-3 py-1.5 rounded-full transition-colors ${
+              pendingPayout
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                : availablePoints >= PAYOUT_POINTS_THRESHOLD
+                ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {pendingPayout ? t.game.withdraw.pending : availablePoints >= PAYOUT_POINTS_THRESHOLD ? t.game.withdraw.button : t.game.withdraw.locked(PAYOUT_POINTS_THRESHOLD - availablePoints)}
+          </button>
           {editingNickname ? (
             <div className="flex items-center gap-1">
               <input
@@ -338,6 +381,18 @@ export default function GameModePage() {
           <p className="text-gray-300 text-sm">
             {t.game.bannerText}
           </p>
+        </div>
+
+        <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="font-bold text-green-400">💸 {t.game.withdraw.progressLabel(Math.min(availablePoints, PAYOUT_POINTS_THRESHOLD), PAYOUT_POINTS_THRESHOLD)}</span>
+          </div>
+          <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
+              style={{ width: `${Math.min(100, (availablePoints / PAYOUT_POINTS_THRESHOLD) * 100)}%` }}
+            />
+          </div>
         </div>
 
         {leaderboard.length > 0 && (
@@ -508,6 +563,63 @@ export default function GameModePage() {
                     className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
                   >
                     {t.game.modal.cancel}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw modal */}
+      {withdrawOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[9999]" onClick={() => !withdrawSubmitting && setWithdrawOpen(false)}>
+          <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setWithdrawOpen(false)}
+              aria-label={t.game.withdraw.cancel}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-lg leading-none transition-colors"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold mb-1 pr-8">💸 {t.game.withdraw.modalTitle}</h2>
+            <p className="text-gray-400 text-sm mb-4">{t.game.withdraw.modalBody(PAYOUT_AMOUNT_CZK)}</p>
+            {withdrawMessage ? (
+              <p className="text-center py-4">{withdrawMessage}</p>
+            ) : (
+              <form onSubmit={handleWithdraw} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">{t.game.withdraw.accountNameLabel}</label>
+                  <input
+                    required
+                    value={withdrawAccountName}
+                    onChange={e => setWithdrawAccountName(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">{t.game.withdraw.accountDetailsLabel}</label>
+                  <input
+                    required
+                    value={withdrawAccountDetails}
+                    onChange={e => setWithdrawAccountDetails(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={withdrawSubmitting}
+                    className="flex-1 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white font-bold py-2.5 rounded-lg transition-colors"
+                  >
+                    {withdrawSubmitting ? t.game.withdraw.submitting : t.game.withdraw.submit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawOpen(false)}
+                    className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+                  >
+                    {t.game.withdraw.cancel}
                   </button>
                 </div>
               </form>
