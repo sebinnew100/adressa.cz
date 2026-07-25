@@ -83,6 +83,7 @@ export default function GameModePage() {
   const [withdrawAccountDetails, setWithdrawAccountDetails] = useState('');
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [withdrawMessage, setWithdrawMessage] = useState('');
+  const [statusDebug, setStatusDebug] = useState('');
 
   const fetchMissions = useCallback(async (cityId: string) => {
     setLoading(true);
@@ -94,8 +95,10 @@ export default function GameModePage() {
 
   const fetchStatus = useCallback(async () => {
     const res = await fetch('/api/game/status');
+    setStatusDebug(`status=${res.status} ok=${res.ok}`);
     if (!res.ok) return;
     const data = await res.json();
+    setStatusDebug(`status=${res.status} body=${JSON.stringify(data).slice(0, 150)}`);
     if (typeof data.totalPoints === 'number') setTotalPoints(data.totalPoints);
     if (typeof data.availablePoints === 'number') setAvailablePoints(data.availablePoints);
     if (typeof data.pendingPayout === 'boolean') setPendingPayout(data.pendingPayout);
@@ -287,7 +290,7 @@ export default function GameModePage() {
           <span className="text-gray-600">|</span>
           <span className="text-purple-400 font-bold flex items-center gap-1.5">🎮 {t.game.gameMode}</span>
           <span style={{ color: 'red', fontWeight: 900, fontSize: '11px' }}>
-            DEBUG tp={JSON.stringify(totalPoints)} ap={JSON.stringify(availablePoints)} thr={JSON.stringify(PAYOUT_POINTS_THRESHOLD)} pend={JSON.stringify(pendingPayout)} sess={sessionStatus}
+            DEBUG tp={JSON.stringify(totalPoints)} ap={JSON.stringify(availablePoints)} thr={JSON.stringify(PAYOUT_POINTS_THRESHOLD)} pend={JSON.stringify(pendingPayout)} sess={sessionStatus} fetch=[{statusDebug}]
           </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
