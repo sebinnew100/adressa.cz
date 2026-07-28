@@ -210,8 +210,8 @@ export default function GameModePage() {
       setTourActive(true);
     }
 
-    const statusTimer = setInterval(fetchStatus, 15000);
-    const leaderboardTimer = setInterval(fetchLeaderboard, 20000);
+    const statusTimer = setInterval(fetchStatus, 30000);
+    const leaderboardTimer = setInterval(fetchLeaderboard, 60000);
     const tickTimer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => {
@@ -225,7 +225,7 @@ export default function GameModePage() {
   useEffect(() => {
     if (sessionStatus !== 'authenticated') return;
     fetchMissions(city);
-    const missionsTimer = setInterval(() => fetchMissions(city), 30000);
+    const missionsTimer = setInterval(() => fetchMissions(city), 60000);
     return () => clearInterval(missionsTimer);
   }, [city, sessionStatus, fetchMissions]);
 
