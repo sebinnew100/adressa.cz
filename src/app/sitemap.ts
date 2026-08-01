@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const BASE = 'https://www.adressa.cz';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [providers, serviceRequests, articles] = await Promise.all([
+  const [providers, serviceRequests, articles, activeCombos] = await Promise.all([
     prisma.provider.findMany({
       where: { active: true },
       select: { id: true, updatedAt: true },
@@ -22,11 +22,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { published: true },
       select: { slug: true, updatedAt: true },
     }),
+    prisma.provider.groupBy({ by: ['serviceId', 'cityId'], where: { active: true } }),
   ]);
 
-  // All 700 service×city landing pages
+  // Service×city landing pages — only ones with at least one active provider.
+  // Submitting empty combos here invites Google to crawl near-content-free
+  // "doorway" style pages, which is exactly the thin-content signal AdSense
+  // flagged; the pages themselves still work if someone lands on them
+  // directly, they're just not advertised in the sitemap.
+  const nonEmptyCombos = new Set(activeCombos.map(c => `${c.serviceId}/${c.cityId}`));
   const landingPages = SERVICES.flatMap(s =>
-    CITIES.map(c => ({
+    CITIES.filter(c => nonEmptyCombos.has(`${s.id}/${c.id}`)).map(c => ({
       url: `${BASE}/${s.id}/${c.id}`,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
