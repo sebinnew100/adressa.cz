@@ -34,6 +34,8 @@ export function Footer() {
               <li><Link href="/register" className="hover:text-brand transition-colors">{t.footer.links.register}</Link></li>
               <li><Link href="/poptavky" className="hover:text-brand transition-colors">{t.footer.links.requests}</Link></li>
               <li><Link href="/faq" className="hover:text-brand transition-colors">{t.footer.links.faq}</Link></li>
+              <li><Link href="/o-nas" className="hover:text-brand transition-colors">{language === 'cs' ? 'O nás' : 'About Us'}</Link></li>
+              <li><Link href="/kontakt" className="hover:text-brand transition-colors">{language === 'cs' ? 'Kontakt' : 'Contact Us'}</Link></li>
             </ul>
           </div>
 
@@ -86,6 +88,15 @@ export function Footer() {
 
         <div className="border-t border-gray-600 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
           <span>© {year} adressa.cz — {t.footer.rights}</span>
+          <Link href="/o-nas" className="hover:text-brand transition-colors">
+            {language === 'cs' ? 'O nás' : 'About Us'}
+          </Link>
+          <Link href="/kontakt" className="hover:text-brand transition-colors">
+            {language === 'cs' ? 'Kontakt' : 'Contact Us'}
+          </Link>
+          <Link href="/obchodni-podminky" className="hover:text-brand transition-colors">
+            {language === 'cs' ? 'Obchodní podmínky' : 'Terms & Conditions'}
+          </Link>
           <Link href="/ochrana-osobnich-udaju" className="hover:text-brand transition-colors">
             {language === 'cs' ? 'Ochrana osobních údajů' : 'Privacy Policy'}
           </Link>
