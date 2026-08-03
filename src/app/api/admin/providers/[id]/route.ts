@@ -73,6 +73,16 @@ export async function PATCH(
         data.paidUntil = paidUntil;
       }
     }
+    if (body.confirmQrPayment === true) {
+      const existing = await prisma.provider.findUnique({ where: { id: params.id } });
+      if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      const now = new Date();
+      const base = existing.paidUntil && existing.paidUntil > now ? existing.paidUntil : now;
+      const paidUntil = new Date(base);
+      paidUntil.setDate(paidUntil.getDate() + 28);
+      data.active = true;
+      data.paidUntil = paidUntil;
+    }
     const updated = await prisma.provider.update({
       where: { id: params.id },
       data,

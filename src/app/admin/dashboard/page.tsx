@@ -35,6 +35,7 @@ export default function AdminDashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [confirmingQrId, setConfirmingQrId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [apptLoading, setApptLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'providers' | 'appointments' | 'codes' | 'requests'>('providers');
@@ -189,9 +190,24 @@ export default function AdminDashboard() {
     setActivatingId(null);
   };
 
+  const handleConfirmQrPayment = async (id: string) => {
+    setConfirmingQrId(id);
+    const res = await fetch(`/api/admin/providers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmQrPayment: true }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setProviders(prev => prev.map(p => p.id === id ? { ...p, active: updated.active, paidUntil: updated.paidUntil } : p));
+    }
+    setConfirmingQrId(null);
+  };
+
   const filtered = providers.filter(p =>
     p.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    (p.email ?? '').toLowerCase().includes(search.toLowerCase())
+    (p.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    p.paymentVariableSymbol.toString().includes(search.trim())
   );
 
   const featuredCount = providers.filter(p => p.featured).length;
@@ -660,6 +676,25 @@ export default function AdminDashboard() {
                           >
                             {provider.active ? '✓ Aktivní' : '⏳ Čeká'}
                           </button>
+                          {provider.paymentMethod === 'qr_bank_transfer' && (
+                            <div className="mt-2 text-xs">
+                              <div className="text-gray-400">
+                                🏦 VS <span className="font-mono font-bold text-white">{provider.paymentVariableSymbol}</span>
+                              </div>
+                              {provider.paidUntil && (
+                                <div className="text-gray-500">
+                                  do {new Date(provider.paidUntil).toLocaleDateString('cs-CZ')}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => handleConfirmQrPayment(provider.id)}
+                                disabled={confirmingQrId === provider.id}
+                                className="mt-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 px-2 py-1 rounded-full font-semibold transition-colors disabled:opacity-50"
+                              >
+                                {confirmingQrId === provider.id ? 'Ukládám…' : '✅ Potvrdit platbu'}
+                              </button>
+                            </div>
+                          )}
                         </td>
                         {/* Featured toggle */}
                         <td className="px-6 py-4 text-center">

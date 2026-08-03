@@ -11,6 +11,8 @@ export interface Provider {
   featured: boolean;
   active: boolean;
   paidUntil: string | null;
+  paymentMethod: string;
+  paymentVariableSymbol: number;
   createdAt: string;
   updatedAt: string;
 }

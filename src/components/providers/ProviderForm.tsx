@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CITIES } from '@/data/cities';
@@ -8,6 +9,7 @@ import { SERVICES } from '@/data/services';
 
 export function ProviderForm() {
   const { language, t } = useLanguage();
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
@@ -41,21 +43,8 @@ export function ProviderForm() {
 
       const provider = await res.json();
 
-      // Redirect to Stripe checkout
-      const checkoutRes = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ providerId: provider.id }),
-      });
-
-      if (checkoutRes.status === 503) {
-        setError(t.register.paymentUnavailable);
-        setSubmitting(false);
-        return;
-      }
-      if (!checkoutRes.ok) throw new Error();
-      const { url } = await checkoutRes.json();
-      window.location.href = url;
+      // Let the provider choose card (Stripe) or bank QR payment.
+      router.push(`/aktivovat/${provider.id}`);
     } catch {
       setError(t.register.error);
       setSubmitting(false);

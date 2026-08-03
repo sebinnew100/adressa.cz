@@ -26,6 +26,8 @@ model Provider {
   stripeCustomerId     String? @unique
   stripeSubscriptionId String? @unique
   subscriptionStatus   String?
+  paymentMethod   String    @default("stripe") // "stripe" | "qr_bank_transfer"
+  paymentVariableSymbol Int @unique @default(autoincrement())
   removalDeadline DateTime?
   salesExempt     Boolean   @default(false)
   scheduledSendAt DateTime?
@@ -117,7 +119,7 @@ model SalesContact {
   id         String   @id @default(cuid())
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  type       String   // "pitch" | "reminder"
+  type       String   // "pitch" | "reminder" | "qr_reminder" | "qr_due_today" | "qr_deactivated" | "qr_self_reported"
   sentAt     DateTime @default(now())
 }
 

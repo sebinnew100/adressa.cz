@@ -488,3 +488,147 @@ export async function sendVerificationEmail(
   }
   return true;
 }
+
+export async function sendQrPaymentReminderEmail(
+  providerEmail: string,
+  providerName: string,
+  opts: { dueToday: boolean; dueDate: Date; aktivovatUrl: string },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const dateStr = opts.dueDate.toLocaleDateString('cs-CZ', { dateStyle: 'long' });
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to: providerEmail,
+    subject: opts.dueToday
+      ? `Dnes je splatná vaše platba – adressa.cz`
+      : `Připomínka platby za profil – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">${opts.dueToday ? 'Platba je splatná dnes' : 'Blíží se splatnost platby'}</h2>
+        <p style="color:#555;font-size:14px;line-height:1.6;">
+          Ahoj ${providerName}, ${opts.dueToday
+            ? `dnes (${dateStr}) je splatná platba za váš profil na adressa.cz.`
+            : `${dateStr} je splatná platba za váš profil na adressa.cz.`}
+          Naskenujte QR kód a zaplaťte bankovním převodem, aby váš profil zůstal viditelný.
+        </p>
+        <a href="${opts.aktivovatUrl}"
+           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
+          Zobrazit QR platbu
+        </a>
+        <p style="color:#999;font-size:12px;margin-top:32px;">
+          Pokud jste již zaplatili, na stejné stránce najdete tlačítko "Již jsem zaplatil/a".
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendQrPaymentReminderEmail failed:', providerEmail, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendQrPaymentDeactivatedEmail(
+  providerEmail: string,
+  providerName: string,
+  aktivovatUrl: string,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to: providerEmail,
+    subject: `Váš profil byl skryt – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Váš profil byl dočasně skryt</h2>
+        <p style="color:#555;font-size:14px;line-height:1.6;">
+          Ahoj ${providerName}, platba za váš profil na adressa.cz nebyla přijata včas, proto byl profil skryt z veřejného seznamu.
+          Zaplaťte prosím QR kódem níže a jakmile platbu potvrdíme, profil znovu zveřejníme.
+        </p>
+        <a href="${aktivovatUrl}"
+           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
+          Zobrazit QR platbu
+        </a>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendQrPaymentDeactivatedEmail failed:', providerEmail, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendQrSelfReportedEmail(
+  to: string,
+  providerName: string,
+  variableSymbol: number,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: `Poskytovatel hlásí zaplaceno (VS ${variableSymbol}) – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Poskytovatel hlásí zaplacenou QR platbu</h2>
+        <p style="color:#555;font-size:14px;line-height:1.6;">
+          <strong>${providerName}</strong> označil/a, že zaplatil/a QR platbu. Zkontrolujte bankovní výpis
+          podle variabilního symbolu <strong>${variableSymbol}</strong> a potvrďte platbu v administraci.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendQrSelfReportedEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendQrReminderCronReportEmail(
+  to: string,
+  result: { reminded: number; dueToday: number; deactivated: number; reason?: string },
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
+  const hasActivity = result.reminded > 0 || result.dueToday > 0 || result.deactivated > 0;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: hasActivity
+      ? `QR platby: ${result.reminded} připomínek, ${result.deactivated} skrytí – adressa.cz`
+      : `QR platby: bez akce dnes – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Denní report – QR platby profilů</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — ${dateStr}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr><td style="padding:8px 0;color:#555;">Připomínky (−3 dny)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.reminded}</td></tr>
+          <tr><td style="padding:8px 0;color:#555;">Splatné dnes</td><td style="padding:8px 0;text-align:right;color:#111;">${result.dueToday}</td></tr>
+          <tr><td style="padding:8px 0;color:#555;">Skryto (neplaceno)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.deactivated}</td></tr>
+        </table>
+        ${result.reason ? `<p style="color:#c0392b;font-size:13px;margin-top:16px;">Chyba: ${result.reason}</p>` : ''}
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendQrReminderCronReportEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
