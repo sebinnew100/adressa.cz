@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
 import { submitToIndexNow } from '@/lib/indexNow';
+
+const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+
+async function savePictureLocally(pictureFile: File) {
+  const ext = pictureFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const safeExt = ext.replace(/[^a-z0-9]/g, '') || 'jpg';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+  const filePath = path.join(UPLOADS_DIR, fileName);
+
+  await mkdir(UPLOADS_DIR, { recursive: true });
+  await writeFile(filePath, Buffer.from(await pictureFile.arrayBuffer()));
+
+  return `/uploads/${fileName}`;
+}
 
 function requireAdmin(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -33,10 +48,7 @@ export async function PUT(
 
     let picturePath = existing.picturePath;
     if (pictureFile && pictureFile.size > 0) {
-      const ext = pictureFile.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filename = `profiles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const blob = await put(filename, pictureFile, { access: 'public' });
-      picturePath = blob.url;
+      picturePath = await savePictureLocally(pictureFile);
     }
 
     const updated = await prisma.provider.update({
