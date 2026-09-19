@@ -29,10 +29,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const title = `${provider.fullName} — ${serviceName} ${cityName} | adressa.cz`;
   const desc = `${provider.fullName} nabízí ${serviceName.toLowerCase()} v ${cityName}. ${provider.description ?? ''} Kontaktujte přes adressa.cz.`.slice(0, 155);
 
+  // Below ~150 chars a profile is basically a one-line stub — same
+  // thin-content bar as articles/procurement notices, just measured against
+  // provider descriptions specifically (checked against production data:
+  // this keeps out the ~150 thinnest profiles while leaving the ~2,630
+  // profiles with substantial descriptions indexed).
+  const hasSubstantialDescription = (provider.description ?? '').trim().length >= 150;
+
   return {
     title,
     description: desc,
-    ...(!provider.description && { robots: { index: false, follow: true } }),
+    ...(!hasSubstantialDescription && { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description: desc,
