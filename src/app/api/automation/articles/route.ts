@@ -83,8 +83,13 @@ export async function POST(request: NextRequest) {
   if (typeof title !== 'string' || title.trim().length < 10) {
     return NextResponse.json({ error: 'title is required (min 10 chars)' }, { status: 400 });
   }
-  if (typeof content !== 'string' || content.trim().length < 500) {
-    return NextResponse.json({ error: 'content is required (min 500 chars)' }, { status: 400 });
+  // Raised from 500 chars (~80 words) after AdSense's second "low value
+  // content" rejection — the previous floor let stubs as short as 21 words
+  // through. 1800 chars is roughly 280-320 words of Czech text, still not a
+  // guarantee of quality but rules out the stub-level content that was
+  // slipping through before.
+  if (typeof content !== 'string' || content.trim().length < 1800) {
+    return NextResponse.json({ error: 'content is required (min 1800 chars, ~300 words)' }, { status: 400 });
   }
   if (typeof relatedServiceId !== 'string' || !SERVICES.some(s => s.id === relatedServiceId)) {
     return NextResponse.json({ error: 'relatedServiceId must be a valid service id' }, { status: 400 });

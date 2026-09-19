@@ -27,11 +27,18 @@ export async function generateMetadata({ params }: { params: { service: string; 
   const title = `${service.nameCz} ${city.nameCz} — ověření profesionálové | adressa.cz`;
   const desc = `Hledáte ${service.nameCz.toLowerCase()} v ${city.nameCz}? Porovnejte ověřené profesionály, čtěte recenze a pošlete poptávku zdarma na adressa.cz.`;
 
+  // A combo with zero listed providers has no real content of its own —
+  // keep it out of the search index until it has at least one real profile.
+  const providerCount = await prisma.provider.count({
+    where: { active: true, serviceId: params.service, cityId: params.city },
+  });
+
   return {
     title,
     description: desc,
     openGraph: { title, description: desc, url: `https://www.adressa.cz/${params.service}/${params.city}` },
     alternates: { canonical: `https://www.adressa.cz/${params.service}/${params.city}` },
+    robots: providerCount > 0 ? undefined : { index: false, follow: true },
   };
 }
 
@@ -76,10 +83,29 @@ export default async function ServiceCityPage({ params }: { params: { service: s
     orderBy: [{ featured: 'desc' }, { fullName: 'asc' }],
   });
 
-  // Related: same service in other top cities
-  const otherCities = CITIES.filter(c => c.id !== params.city).slice(0, 6);
-  // Related: other services in same city
-  const otherServices = SERVICES.filter(s => s.id !== params.service).slice(0, 6);
+  // Related links must only point at combos that actually have providers —
+  // linking to empty combos regardless of content was how Google kept
+  // re-discovering/crawling thin pages even after they were dropped from
+  // the sitemap (internal links are a crawl path independent of sitemap.xml).
+  const [citiesWithService, servicesInCity] = await Promise.all([
+    prisma.provider.groupBy({
+      by: ['cityId'],
+      where: { active: true, serviceId: params.service, cityId: { not: params.city } },
+      _count: true,
+    }),
+    prisma.provider.groupBy({
+      by: ['serviceId'],
+      where: { active: true, cityId: params.city, serviceId: { not: params.service } },
+      _count: true,
+    }),
+  ]);
+  const populatedCityIds = new Set(citiesWithService.map(g => g.cityId));
+  const populatedServiceIds = new Set(servicesInCity.map(g => g.serviceId));
+
+  // Related: same service in other cities that actually have listings
+  const otherCities = CITIES.filter(c => populatedCityIds.has(c.id)).slice(0, 6);
+  // Related: other services in same city that actually have listings
+  const otherServices = SERVICES.filter(s => populatedServiceIds.has(s.id)).slice(0, 6);
 
   const faq = buildFaq(service.nameCz, city.nameCz);
 
@@ -244,41 +270,45 @@ export default async function ServiceCityPage({ params }: { params: { service: s
           </div>
         </section>
 
-        {/* Internal links — same service, other cities */}
-        <section className="mt-12">
-          <h2 className="text-lg font-bold text-ink mb-4">
-            {service.nameCz} v jiných městech
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {otherCities.map(c => (
-              <Link
-                key={c.id}
-                href={`/${service.id}/${c.id}`}
-                className="text-sm px-3 py-1.5 rounded-full bg-white border border-gray-200 text-ink-light hover:border-brand hover:text-brand transition-colors"
-              >
-                {service.nameCz} {c.nameCz}
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Internal links — same service, other cities (only ones with real listings) */}
+        {otherCities.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-lg font-bold text-ink mb-4">
+              {service.nameCz} v jiných městech
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {otherCities.map(c => (
+                <Link
+                  key={c.id}
+                  href={`/${service.id}/${c.id}`}
+                  className="text-sm px-3 py-1.5 rounded-full bg-white border border-gray-200 text-ink-light hover:border-brand hover:text-brand transition-colors"
+                >
+                  {service.nameCz} {c.nameCz}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Internal links — other services, same city */}
-        <section className="mt-8 mb-4">
-          <h2 className="text-lg font-bold text-ink mb-4">
-            Další služby v {city.nameCz}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {otherServices.map(s => (
-              <Link
-                key={s.id}
-                href={`/${s.id}/${city.id}`}
-                className="text-sm px-3 py-1.5 rounded-full bg-white border border-gray-200 text-ink-light hover:border-brand hover:text-brand transition-colors"
-              >
-                {s.icon} {s.nameCz}
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Internal links — other services, same city (only ones with real listings) */}
+        {otherServices.length > 0 && (
+          <section className="mt-8 mb-4">
+            <h2 className="text-lg font-bold text-ink mb-4">
+              Další služby v {city.nameCz}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {otherServices.map(s => (
+                <Link
+                  key={s.id}
+                  href={`/${s.id}/${city.id}`}
+                  className="text-sm px-3 py-1.5 rounded-full bg-white border border-gray-200 text-ink-light hover:border-brand hover:text-brand transition-colors"
+                >
+                  {s.icon} {s.nameCz}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />

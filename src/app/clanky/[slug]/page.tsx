@@ -12,6 +12,13 @@ import { ArticleCtaLink } from '@/components/articles/ArticleCtaLink';
 
 const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|preview/i;
 
+// Matches the minimum content length enforced for new articles as of
+// 2026-08-16 (see src/app/api/automation/articles/route.ts) — existing
+// articles shorter than this predate that bar and are kept out of the
+// search index until expanded, rather than dragging down the site's
+// overall content-quality signal to Google.
+const MIN_INDEXABLE_CONTENT_LENGTH = 1800;
+
 const getArticle = cache(async (slug: string) => {
   return prisma.article.findUnique({ where: { slug } });
 });
@@ -46,6 +53,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       description: desc,
       images: article.coverImagePath ? [{ url: article.coverImagePath }] : [],
     },
+    robots: article.content.trim().length >= MIN_INDEXABLE_CONTENT_LENGTH ? undefined : { index: false, follow: true },
   };
 }
 

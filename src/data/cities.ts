@@ -30,4 +30,5 @@ export const CITIES: City[] = [
   { id: 'prostejov', nameCz: 'Prostějov', nameEn: 'Prostějov' },
   { id: 'prerov', nameCz: 'Přerov', nameEn: 'Přerov' },
   { id: 'ceska-lipa', nameCz: 'Česká Lípa', nameEn: 'Česká Lípa' },
+  { id: 'trebon', nameCz: 'Třeboň', nameEn: 'Třeboň' },
 ];

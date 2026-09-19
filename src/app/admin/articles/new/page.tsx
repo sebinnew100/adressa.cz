@@ -28,6 +28,8 @@ export default function NewArticlePage() {
       body: new FormData(e.currentTarget),
     });
 
+
+    
     if (res.ok) {
       router.push('/admin/articles');
     } else {

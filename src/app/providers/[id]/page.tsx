@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return {
     title,
     description: desc,
+    ...(!provider.description && { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description: desc,

@@ -16,6 +16,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return {
     title: `${notice.title} | Veřejné zakázky | adressa.cz`,
     description: notice.description ?? `Veřejná zakázka: ${notice.title}`,
+    // Scraped listings with no original description are metadata tables, not
+    // real content — keeping them out of search index avoids them counting
+    // against the site's overall content-quality signal.
+    robots: notice.description ? undefined : { index: false, follow: true },
   };
 }
 

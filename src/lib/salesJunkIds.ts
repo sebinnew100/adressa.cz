@@ -1,6 +1,9 @@
 // Confirmed developer test/dev Provider rows (created while testing the
-// registration and Stripe checkout flows, 2026-04-23 to 2026-07-12) — not
+// registration and Stripe checkout flows, 2026-04-23 to 2026-07-19) — not
 // real businesses, so excluded from the sales-autopilot lead pipeline by ID.
+// All were also set `active: false` on 2026-08-16 as part of an AdSense
+// content-quality fix, since they were still publicly live/indexable despite
+// already being excluded from the sales pipeline.
 //
 // This exists instead of an `address: { not: null }` filter because address
 // is an OPTIONAL field on the real public registration form — filtering out
@@ -20,4 +23,5 @@ export const KNOWN_TEST_PROVIDER_IDS = [
   'cmrh22tuv0000lvnn4jw2ol87', // "TEST new pricing 10czk+299"
   'cmrh35t2100006evbg5aj6513', // "albi"
   'cmrh3l50z0000q5d5urska9el', // "TEST fixed immediate charge"
+  'cmrs3ss7s000a8gs677azz0kc', // "A" — found 2026-08-16, single-letter name/no email/no description
 ] as const;
