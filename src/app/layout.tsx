@@ -63,6 +63,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
         />
         <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='11909019',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
+          }}
+        />
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
