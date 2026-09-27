@@ -67,6 +67,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(s){s.dataset.zone='11909019',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
           }}
         />
+        {/* Adsterra Popunder */}
+        <script src="https://pl31543561.profitableratecpmnetwork.com/a4/25/a0/a425a04b4b512a4bb908e561d8c32aaf.js" />
+        {/* Adsterra Social Bar */}
+        <script src="https://pl31543563.profitableratecpmnetwork.com/c1/08/ce/c108ce0d2dd18c0f37c3b004e5a8932e.js" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
