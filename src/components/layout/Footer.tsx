@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SERVICES } from '@/data/services';
@@ -7,6 +8,26 @@ import { SERVICES } from '@/data/services';
 export function Footer() {
   const { language, t } = useLanguage();
   const year = new Date().getFullYear();
+
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterConsent, setNewsletterConsent] = useState(false);
+  const [newsletterState, setNewsletterState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewsletterState('submitting');
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail, consent: newsletterConsent, source: 'footer' }),
+      });
+      if (!res.ok) { setNewsletterState('error'); return; }
+      setNewsletterState('success');
+    } catch {
+      setNewsletterState('error');
+    }
+  };
 
   return (
     <footer className="bg-[#404145] text-gray-300 mt-auto">
@@ -86,7 +107,63 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-600 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
+        <div className="border-t border-gray-600 mt-10 pt-8 max-w-md mx-auto text-center">
+          <h4 className="text-white font-semibold mb-2 text-sm">
+            {language === 'cs' ? 'Odebírejte novinky' : 'Subscribe to updates'}
+          </h4>
+          {newsletterState === 'success' ? (
+            <p className="text-sm text-brand">
+              {language === 'cs' ? 'Děkujeme za přihlášení!' : 'Thanks for subscribing!'}
+            </p>
+          ) : (
+            <form onSubmit={handleNewsletterSubmit} className="space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={e => setNewsletterEmail(e.target.value)}
+                  placeholder={language === 'cs' ? 'Váš e-mail' : 'Your email'}
+                  className="flex-1 rounded-lg px-3 py-2 text-sm text-ink bg-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+                <button
+                  type="submit"
+                  disabled={newsletterState === 'submitting' || !newsletterConsent}
+                  className="bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+                >
+                  {newsletterState === 'submitting'
+                    ? (language === 'cs' ? 'Odesílám…' : 'Submitting…')
+                    : (language === 'cs' ? 'Přihlásit se' : 'Subscribe')}
+                </button>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-gray-400 text-left">
+                <input
+                  type="checkbox"
+                  required
+                  checked={newsletterConsent}
+                  onChange={e => setNewsletterConsent(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  {language === 'cs'
+                    ? 'Souhlasím se zasíláním e-mailových novinek od adressa.cz. Odběr mohu kdykoliv zrušit.'
+                    : 'I agree to receive marketing emails from adressa.cz. I can unsubscribe at any time.'}
+                  {' '}
+                  <Link href="/ochrana-osobnich-udaju" className="underline hover:text-brand">
+                    {language === 'cs' ? 'Ochrana osobních údajů' : 'Privacy Policy'}
+                  </Link>
+                </span>
+              </label>
+              {newsletterState === 'error' && (
+                <p className="text-xs text-red-400">
+                  {language === 'cs' ? 'Něco se pokazilo, zkuste to prosím znovu.' : 'Something went wrong, please try again.'}
+                </p>
+              )}
+            </form>
+          )}
+        </div>
+
+        <div className="border-t border-gray-600 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-xs text-gray-500">
           <span>© {year} adressa.cz — {t.footer.rights}</span>
           <Link href="/o-nas" className="hover:text-brand transition-colors">
             {language === 'cs' ? 'O nás' : 'About Us'}

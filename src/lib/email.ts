@@ -117,6 +117,7 @@ export async function sendProviderImportReportEmail(
     query: string;
     skippedDuplicates: number;
     reason?: string;
+    listingNotified?: number;
   },
 ): Promise<boolean> {
   const resend = getResend();
@@ -134,6 +135,8 @@ export async function sendProviderImportReportEmail(
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes nebyl přidán žádný nový poskytovatel. Důvod: ${result.reason || 'neznámý'}.</p>`;
 
+  const notifiedLine = `<p style="color:#555;margin-top:16px;">📧 Dnes byl odeslán informační e-mail o zapsání do katalogu ${result.listingNotified ?? 0} poskytovatelům (jen těm, kteří mají e-mail).</p>`;
+
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
@@ -145,6 +148,7 @@ export async function sendProviderImportReportEmail(
         <h2 style="color:#111;margin-bottom:4px;">Denní report – přidávání poskytovatelů</h2>
         <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatický import z Google Places</p>
         ${body}
+        ${notifiedLine}
         <p style="color:#999;font-size:12px;margin-top:32px;">
           Tito poskytovatelé jsou reální (z Google Places) a jsou automaticky vyňati z prodejního oslovování, dokud si to sami nezažádají.
         </p>
@@ -154,6 +158,82 @@ export async function sendProviderImportReportEmail(
 
   if (error) {
     console.error('sendProviderImportReportEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendNewsletterWelcomeEmail(
+  to: string,
+  unsubscribeToken: string,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
+  const unsubscribeUrl = `${baseUrl}/api/newsletter/unsubscribe?token=${unsubscribeToken}`;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: `Přihlášení k odběru novinek – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:16px;">Děkujeme za přihlášení!</h2>
+        <p style="color:#333;line-height:1.6;">
+          Budeme vám občas posílat novinky a tipy z adressa.cz.
+        </p>
+        <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
+          Kdykoliv se můžete odhlásit — <a href="${unsubscribeUrl}" style="color:#166534;">zrušit odběr</a>.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendNewsletterWelcomeEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendListingNotificationEmail(
+  to: string,
+  providerName: string,
+  providerId: string,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
+  const profileUrl = `${baseUrl}/providers/${providerId}`;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: `Vytvořili jsme pro vás profil na adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:16px;">Dobrý den,</h2>
+        <p style="color:#333;line-height:1.6;">
+          všimli jsme si, že <strong>${providerName}</strong> působí ve svém oboru, a vytvořili jsme pro vás bezplatný profil na katalogu adressa.cz:
+        </p>
+        <p style="margin:20px 0;">
+          <a href="${profileUrl}" style="color:#fff;background:#166534;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Zobrazit váš profil</a>
+        </p>
+        <p style="color:#333;line-height:1.6;">
+          Pokud byste měli zájem získat přes adressa.cz více zákazníků, napište nám na
+          <a href="mailto:customerserviceentfin@gmail.com" style="color:#166534;">customerserviceentfin@gmail.com</a>.
+        </p>
+        <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
+          Pokud si nepřejete být v katalogu uvedeni, dejte nám prosím vědět na stejný e-mail a profil odstraníme.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendListingNotificationEmail failed:', to, error);
     return false;
   }
   return true;

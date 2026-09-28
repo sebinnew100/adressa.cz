@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { sendProviderImportReportEmail } from '@/lib/email';
+import { sendProviderImportReportEmail, sendListingNotificationEmail } from '@/lib/email';
 import { searchGooglePlaces } from '@/lib/googlePlaces';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
@@ -25,6 +25,7 @@ async function sendReport(result: {
   query: string;
   skippedDuplicates: number;
   reason?: string;
+  listingNotified?: number;
 }) {
   const to = process.env.AUTOPILOT_REPORT_EMAIL;
   if (!to) return;
@@ -33,6 +34,32 @@ async function sendReport(result: {
   } catch (err) {
     console.error('Provider import report email failed:', err);
   }
+}
+
+// One-time, no-pitch "you're listed" notice — separate from the sales-pitch
+// flow (salesExempt doesn't apply here), sent once per provider that has an
+// email, tracked via listingNotifiedAt so nobody gets it twice. Naturally
+// catches both the existing backlog and today's new additions in one pass.
+async function sendListingNotifications(): Promise<number> {
+  const candidates = await prisma.provider.findMany({
+    where: { active: true, email: { not: null }, listingNotifiedAt: null },
+    select: { id: true, fullName: true, email: true },
+  });
+
+  let sent = 0;
+  for (const p of candidates) {
+    if (!p.email) continue;
+    try {
+      const ok = await sendListingNotificationEmail(p.email, p.fullName, p.id);
+      if (ok) {
+        await prisma.provider.update({ where: { id: p.id }, data: { listingNotifiedAt: new Date() } });
+        sent++;
+      }
+    } catch (err) {
+      console.error('Listing notification failed for', p.id, err);
+    }
+  }
+  return sent;
 }
 
 export async function GET(request: NextRequest) {
@@ -61,7 +88,8 @@ async function runAddProviders() {
   const results = await searchGooglePlaces(query, 20);
 
   if (results.length === 0) {
-    const result = { added: [], query, skippedDuplicates: 0, reason: 'Google Places nevrátilo žádné výsledky (nebo chybí API klíč).' };
+    const listingNotified = await sendListingNotifications();
+    const result = { added: [], query, skippedDuplicates: 0, reason: 'Google Places nevrátilo žádné výsledky (nebo chybí API klíč).', listingNotified };
     await sendReport(result);
     return NextResponse.json(result);
   }
@@ -103,7 +131,8 @@ async function runAddProviders() {
     }
   }
 
-  const result = { added, query, skippedDuplicates };
+  const listingNotified = await sendListingNotifications();
+  const result = { added, query, skippedDuplicates, listingNotified };
   await sendReport(result);
   return NextResponse.json(result);
 }

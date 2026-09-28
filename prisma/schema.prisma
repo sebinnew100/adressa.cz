@@ -31,6 +31,7 @@ model Provider {
   removalDeadline DateTime?
   salesExempt     Boolean   @default(false)
   scheduledSendAt DateTime?
+  listingNotifiedAt DateTime? // one-time "your business is listed" notice, separate from the sales-pitch flow
   placeId         String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -176,4 +177,14 @@ model ProcurementNotice {
   sourceUrl        String?
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
+}
+
+model Subscriber {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  consentedAt     DateTime  @default(now())
+  source          String    @default("footer") // where they signed up, for later reference
+  unsubscribeToken String   @unique @default(cuid())
+  unsubscribedAt  DateTime?
+  createdAt       DateTime  @default(now())
 }
