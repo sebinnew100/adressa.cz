@@ -13,6 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.adressa.cz'),
   title: 'adressa.cz — Místní poskytovatelé služeb',
   description:
     'Najděte místní řemeslníky a profesionály v České republice. Elektrikáři, instalatéři, malíři, zubaři a mnoho dalších.',
