@@ -30,7 +30,6 @@ export const metadata: Metadata = {
     description: 'Najděte místní řemeslníky a profesionály v České republice.',
   },
   other: {
-    monetag: '8ebc365aff2bd853853de756c188a822',
     'seznam-wmt': 'v6toM7Oc6C5oRA9UhMKfdDn36efY6dom',
   },
 };
@@ -61,11 +60,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5770800340894128"
           crossOrigin="anonymous"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='11909019',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
-          }}
         />
         {/* Adsterra Popunder */}
         <script src="https://pl31543561.profitableratecpmnetwork.com/a4/25/a0/a425a04b4b512a4bb908e561d8c32aaf.js" />

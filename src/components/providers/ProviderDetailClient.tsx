@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
@@ -37,70 +37,6 @@ function Stars({ rating, interactive = false, onSelect }: { rating: number; inte
   );
 }
 
-const AD_SECONDS = 8;
-
-function AdUnlockModal({ onUnlocked, language }: { onUnlocked: () => void; language: string }) {
-  const [seconds, setSeconds] = useState(AD_SECONDS);
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://quge5.com/88/tag.min.js';
-    script.setAttribute('data-zone', '232297');
-    script.setAttribute('data-cfasync', 'false');
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
-
-  useEffect(() => {
-    if (seconds <= 0) { setDone(true); return; }
-    const t = setTimeout(() => setSeconds(s => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [seconds]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
-        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-          <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-            {language === 'cs' ? 'Reklama' : 'Advertisement'}
-          </span>
-          {!done && (
-            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-mono">
-              {seconds}s
-            </span>
-          )}
-        </div>
-        <div className="h-52 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center gap-3 px-6">
-          <span className="text-4xl">🚀</span>
-          <p className="text-white font-bold text-lg text-center">adressa.cz</p>
-          <p className="text-white/80 text-sm text-center">
-            {language === 'cs'
-              ? 'Zvyšte viditelnost svého profilu — kontaktujte nás!'
-              : 'Boost your profile visibility — contact us!'}
-          </p>
-          <p className="text-white/70 text-xs text-center">customerserviceentfin@gmail.com · +420 728 415 630</p>
-        </div>
-        <div className="p-5">
-          <p className="text-sm text-gray-500 text-center mb-4">
-            {done
-              ? (language === 'cs' ? 'Reklama dokončena. Odemkněte kontakt.' : 'Ad finished. Unlock contact details.')
-              : (language === 'cs' ? `Počkejte ${seconds} sekund…` : `Please wait ${seconds} seconds…`)}
-          </p>
-          <button
-            disabled={!done}
-            onClick={onUnlocked}
-            className="w-full bg-brand hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
-          >
-            {language === 'cs' ? '🔓 Zobrazit kontakt' : '🔓 Show contact info'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface ReviewData {
   id: string;
   authorName: string;
@@ -113,9 +49,6 @@ export function ProviderDetailClient({ provider, initialReviews = [] }: { provid
   const { language, t } = useLanguage();
   const router = useRouter();
   const id = provider.id;
-
-  const [unlocked, setUnlocked] = useState(false);
-  const [showAd, setShowAd] = useState(false);
 
   const [reviews, setReviews] = useState<ReviewData[]>(initialReviews);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -195,7 +128,6 @@ export function ProviderDetailClient({ provider, initialReviews = [] }: { provid
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-      {showAd && <AdUnlockModal onUnlocked={() => { setUnlocked(true); setShowAd(false); }} language={language} />}
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10">
         <button
@@ -264,8 +196,7 @@ export function ProviderDetailClient({ provider, initialReviews = [] }: { provid
 
             <div>
               <h2 className="text-sm font-bold text-ink uppercase tracking-wide mb-4">{t.provider.contact}</h2>
-              {unlocked ? (
-                <>
+              <>
                   <div className="space-y-3 mb-4">
                     {provider.email && (
                       <div className="flex items-center gap-3 text-sm">
@@ -312,27 +243,6 @@ export function ProviderDetailClient({ provider, initialReviews = [] }: { provid
                     )}
                   </div>
                 </>
-              ) : (
-                <div className="rounded-xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center gap-3 text-center">
-                  <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-2xl">🔒</div>
-                  <div>
-                    <p className="font-semibold text-ink text-sm">
-                      {language === 'cs' ? 'Kontaktní údaje jsou skryté' : 'Contact details are hidden'}
-                    </p>
-                    <p className="text-xs text-ink-lighter mt-1">
-                      {language === 'cs'
-                        ? 'Zhlédněte krátkou reklamu a odemkněte telefon a e-mail zdarma.'
-                        : 'Watch a short ad to unlock phone & email for free.'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowAd(true)}
-                    className="mt-1 bg-brand hover:bg-brand-hover text-white font-bold px-6 py-2.5 rounded-xl transition-colors text-sm"
-                  >
-                    {language === 'cs' ? '▶ Zhlédnout reklamu a odemknout' : '▶ Watch ad & unlock'}
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
