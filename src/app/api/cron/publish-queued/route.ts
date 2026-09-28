@@ -10,14 +10,13 @@ export const dynamic = 'force-dynamic';
 // Same cap as /api/automation/articles — kept in sync manually since this
 // is a small, fixed, one-time target (19 pre-existing + 100 autopilot).
 const AUTOPILOT_TARGET_TOTAL = 119;
-// Slowed from 2/day to 1 per run (cron now fires every 5 days, see
-// vercel.json) so the remaining 30-article headroom under the cap stretches
-// across ~5 months instead of ~15 days — same total, paced out.
+// Slowed from 2/day to 1/day (user chose faster pacing over longer runway —
+// the current 30-article queue lasts ~1 month at this rate, not 5 months;
+// top up the queue again once it runs low, same as this batch was added).
 const ARTICLES_PER_DAY = 1;
-// Catch-up capped at 1 "unit" (matches ARTICLES_PER_DAY) so a skipped run
-// doesn't dump a backlog — with the 5-day schedule, a missed run just means
-// the next one publishes 1, same as normal, instead of accumulating days.
-const MAX_CATCHUP_DAYS = 1;
+// Catch-up capped at 3 days' worth so a skipped run doesn't silently fall
+// behind, without dumping too much backlog at once if several runs are missed.
+const MAX_CATCHUP_DAYS = 3;
 
 function requireAuth(request: NextRequest): boolean {
   const auth = request.headers.get('authorization');
