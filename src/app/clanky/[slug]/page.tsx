@@ -12,6 +12,29 @@ import { ArticleCtaLink } from '@/components/articles/ArticleCtaLink';
 
 const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|preview/i;
 
+// Article content is stored and otherwise rendered as plain text (no HTML),
+// but internal links matter for SEO — this parses a lightweight
+// [text](/path) syntax so editors/automation can add real internal links
+// without needing to store/sanitize raw HTML in the content field.
+const LINK_PATTERN = /\[([^\]]+)\]\((\/[^)]+)\)/g;
+
+function renderParagraphWithLinks(paragraph: string) {
+  const parts: (string | { text: string; href: string })[] = [];
+  let lastIndex = 0;
+  for (const match of Array.from(paragraph.matchAll(LINK_PATTERN))) {
+    if (match.index! > lastIndex) parts.push(paragraph.slice(lastIndex, match.index));
+    parts.push({ text: match[1], href: match[2] });
+    lastIndex = match.index! + match[0].length;
+  }
+  if (lastIndex < paragraph.length) parts.push(paragraph.slice(lastIndex));
+
+  return parts.map((part, i) =>
+    typeof part === 'string'
+      ? part
+      : <Link key={i} href={part.href} className="text-brand hover:underline">{part.text}</Link>
+  );
+}
+
 // Matches the minimum content length enforced for new articles as of
 // 2026-08-16 (see src/app/api/automation/articles/route.ts) — existing
 // articles shorter than this predate that bar and are kept out of the
@@ -191,7 +214,7 @@ export default async function ClankySlugPage({ params }: { params: { slug: strin
         </p>
         <div className="prose max-w-none">
           {paragraphs.map((p, i) => (
-            <p key={i} className="text-ink leading-relaxed mb-5">{p}</p>
+            <p key={i} className="text-ink leading-relaxed mb-5">{renderParagraphWithLinks(p)}</p>
           ))}
         </div>
 
