@@ -9,10 +9,9 @@ export const dynamic = 'force-dynamic';
 
 const PROVIDERS_PER_RUN = 45;
 // Resend's plan caps at 100 emails/day TOTAL, shared with sales-autopilot
-// (60/day) and the other crons' report emails — this cap keeps listing
-// notifications from spiking the shared quota if a backlog of unnotified
-// providers ever builds up.
-const LISTING_NOTIFICATION_DAILY_CAP = 15;
+// (93/day) and the other crons' report emails — kept minimal so almost all
+// of the shared quota goes to sales-pitch emails instead.
+const LISTING_NOTIFICATION_DAILY_CAP = 3;
 // Google Places (New) hard-caps a single text-search request at 20 results,
 // so reaching PROVIDERS_PER_RUN requires searching several service+city
 // combos per run, not just asking for more from one query. Capped so a run
