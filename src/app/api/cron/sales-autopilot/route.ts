@@ -15,11 +15,14 @@ const INITIAL_STAGE_GAP_DAYS = 3;
 const STEADY_STAGE_GAP_DAYS = 7;
 const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "will be removed by" date shown in copy.
 
-// Conservative caps to protect a single sending domain from a rate-limit/
-// spam flag now that all 4 stages can fire automatically instead of just 2.
-// Adjust once real Resend plan limits are confirmed.
-const NEW_INTRO_DAILY_CAP = 45;
-const TOTAL_DAILY_CAP = 80;
+// Resend's real plan limit is 100 emails/day TOTAL, shared across every
+// automation (sales pitches, listing notifications, daily reports, real
+// customer emails). Budget: ~4 report emails + up to 15 listing
+// notifications + up to 60 sales pitches leaves ~20/day headroom for real
+// transactional emails (appointment requests, QR confirmations) that must
+// never silently fail because this cron used up the whole quota.
+const NEW_INTRO_DAILY_CAP = 30;
+const TOTAL_DAILY_CAP = 60;
 
 const STAGE_ORDER: SalesPitchStage[] = ['intro', 'waiting', 'hidden', 'followup'];
 
