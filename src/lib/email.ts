@@ -114,7 +114,7 @@ export async function sendProviderImportReportEmail(
   to: string,
   result: {
     added: { fullName: string; serviceNameCz: string; cityNameCz: string }[];
-    query: string;
+    queries: string[];
     skippedDuplicates: number;
     reason?: string;
     listingNotified?: number;
@@ -127,7 +127,7 @@ export async function sendProviderImportReportEmail(
 
   const body = result.added.length > 0
     ? `
-      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.added.length} nových poskytovatelů z vyhledávání „${result.query}“:</p>
+      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.added.length} nových poskytovatelů z vyhledávání „${result.queries.join('“, „')}“:</p>
       <ul style="padding-left:20px;color:#111;">
         ${result.added.map(p => `<li style="margin-bottom:6px;">${p.fullName} — ${p.serviceNameCz}, ${p.cityNameCz}</li>`).join('')}
       </ul>
