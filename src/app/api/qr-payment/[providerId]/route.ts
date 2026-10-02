@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { MONTHLY_PRICE_CZK } from '@/lib/stripe';
-import { generatePaymentQrDataUrl, formatIbanForDisplay } from '@/lib/qrPayment';
+import { generatePaymentQrDataUrl, formatIbanForDisplay, LIFETIME_PRICE_CZK } from '@/lib/qrPayment';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +15,7 @@ export async function GET(
   if (!iban) return NextResponse.json({ error: 'qr_not_configured' }, { status: 503 });
 
   const qrDataUrl = await generatePaymentQrDataUrl({
-    amountCzk: MONTHLY_PRICE_CZK,
+    amountCzk: LIFETIME_PRICE_CZK,
     variableSymbol: provider.paymentVariableSymbol,
     message: `adressa.cz ${provider.fullName}`,
   });
@@ -25,7 +24,7 @@ export async function GET(
     qrDataUrl,
     ibanFormatted: formatIbanForDisplay(iban),
     variableSymbol: provider.paymentVariableSymbol,
-    amountCzk: MONTHLY_PRICE_CZK,
+    amountCzk: LIFETIME_PRICE_CZK,
     dueDate: provider.paidUntil,
   });
 }

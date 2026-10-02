@@ -60,20 +60,16 @@ function QrPaymentPanel({ providerId, active }: { providerId: string; active: bo
     );
   }
 
-  const dueDateLabel = qrData.dueDate
-    ? new Date(qrData.dueDate).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')
-    : null;
-
   return (
     <div className="text-left">
       <p className="text-sm text-ink-light mb-4">
         {active
           ? language === 'cs'
-            ? `Váš profil je aktivní do ${dueDateLabel}. Zaplaťte QR kódem předem, aby vám profil vydržel i další období.`
-            : `Your profile is active until ${dueDateLabel}. Pay via the QR code ahead of time to keep it active for the next period.`
+            ? 'Váš profil je aktivní napořád — platbu jste již provedli, žádné další poplatky vás nečekají.'
+            : "Your profile is active for good — you've already paid, no further fees ever."
           : language === 'cs'
-            ? 'Zvolili jste platbu bankovním převodem. Naskenujte QR kód ve své bankovní aplikaci — jakmile platbu ověříme, profil aktivujeme.'
-            : "You've chosen bank transfer payment. Scan the QR code in your banking app — once we verify the payment, we'll activate your profile."}
+            ? 'Zvolili jste platbu bankovním převodem. Naskenujte QR kód ve své bankovní aplikaci — jakmile platbu ověříme, profil aktivujeme natrvalo.'
+            : "You've chosen bank transfer payment. Scan the QR code in your banking app — once we verify the payment, we'll activate your profile permanently."}
       </p>
 
       <div className="flex justify-center mb-4">
@@ -85,6 +81,7 @@ function QrPaymentPanel({ providerId, active }: { providerId: string; active: bo
         <p><span className="text-ink-light">{language === 'cs' ? 'Účet' : 'Account'}: </span><span className="font-mono">{qrData.ibanFormatted}</span></p>
         <p><span className="text-ink-light">{language === 'cs' ? 'Variabilní symbol' : 'Variable symbol'}: </span><span className="font-mono font-bold">{qrData.variableSymbol}</span></p>
         <p><span className="text-ink-light">{language === 'cs' ? 'Částka' : 'Amount'}: </span><span className="font-bold">{(qrData.amountCzk / 100).toFixed(0)} Kč</span></p>
+        <p className="text-xs text-ink-light pt-1">{language === 'cs' ? 'Jednorázová platba — platí navždy, žádné další poplatky.' : 'One-time payment — valid forever, no further fees.'}</p>
       </div>
 
       {reported ? (
@@ -113,7 +110,6 @@ export default function ActivateProviderPage() {
 
   const [provider, setProvider] = useState<ProviderInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState(false);
   const [choosingQr, setChoosingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -128,28 +124,6 @@ export default function ActivateProviderPage() {
   useEffect(() => {
     load();
   }, [providerId]);
-
-  const startCheckout = async () => {
-    setStarting(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ providerId }),
-      });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        setError('checkout_failed');
-        setStarting(false);
-      }
-    } catch {
-      setError('checkout_failed');
-      setStarting(false);
-    }
-  };
 
   const chooseQr = async () => {
     setChoosingQr(true);
@@ -223,7 +197,7 @@ export default function ActivateProviderPage() {
             <>
               <h1 className="text-2xl font-bold text-ink mb-2">
                 {provider.active
-                  ? (language === 'cs' ? 'Potvrďte předplatné a ponechte si profil' : 'Confirm your subscription to keep your profile')
+                  ? (language === 'cs' ? 'Zaplaťte a ponechte si profil natrvalo' : 'Pay to keep your profile for good')
                   : (language === 'cs' ? 'Znovu zveřejněte svůj profil' : 'Publish your profile again')}
               </h1>
               <p className="text-ink-light text-sm mb-2">
@@ -232,8 +206,8 @@ export default function ActivateProviderPage() {
                       ? `${provider.fullName}, váš profil je nyní viditelný zdarma na adressa.cz.`
                       : `${provider.fullName}, your profile is currently visible for free on adressa.cz.`)
                   : (language === 'cs'
-                      ? `${provider.fullName}, váš profil byl z webu odstraněn, protože nebylo potvrzeno předplatné.`
-                      : `${provider.fullName}, your profile was removed from the site because no subscription was confirmed.`)}
+                      ? `${provider.fullName}, váš profil byl z webu odstraněn, protože nebyla potvrzena platba.`
+                      : `${provider.fullName}, your profile was removed from the site because no payment was confirmed.`)}
               </p>
               {provider.active && daysLeft !== null && (
                 <p className={`text-sm font-semibold mb-6 ${daysLeft <= 2 ? 'text-red-500' : 'text-amber-600'}`}>
@@ -247,35 +221,17 @@ export default function ActivateProviderPage() {
                 </p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 mb-4">
-                <div className="border border-gray-200 rounded-xl p-4 text-left">
-                  <p className="font-semibold text-ink text-sm mb-2">💳 {language === 'cs' ? 'Platba kartou' : 'Card payment'}</p>
-                  <ul className="text-xs text-ink-light space-y-1 mb-4">
-                    <li>{language === 'cs' ? '• 15 Kč aktivační poplatek (jednorázově)' : '• 15 CZK one-time activation fee'}</li>
-                    <li>{language === 'cs' ? '• 7 dní zdarma na vyzkoušení' : '• 7 days free trial'}</li>
-                    <li>{language === 'cs' ? '• poté 299 Kč každých 28 dní' : '• then 299 CZK every 28 days'}</li>
-                  </ul>
-                  <button
-                    onClick={startCheckout}
-                    disabled={starting || choosingQr}
-                    className="w-full bg-brand hover:bg-brand-hover text-white font-bold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {starting
-                      ? (language === 'cs' ? 'Přesměrovávám…' : 'Redirecting…')
-                      : (language === 'cs' ? 'Platit kartou' : 'Pay by card')}
-                  </button>
-                </div>
-
+              <div className="grid grid-cols-1 gap-3 mt-6 mb-4 max-w-xs mx-auto">
                 <div className="border border-gray-200 rounded-xl p-4 text-left">
                   <p className="font-semibold text-ink text-sm mb-2">🏦 {language === 'cs' ? 'Platba QR kódem' : 'Bank QR payment'}</p>
                   <ul className="text-xs text-ink-light space-y-1 mb-4">
                     <li>{language === 'cs' ? '• bankovní převod, žádná karta' : '• bank transfer, no card needed'}</li>
-                    <li>{language === 'cs' ? '• 299 Kč každých 28 dní' : '• 299 CZK every 28 days'}</li>
-                    <li>{language === 'cs' ? '• profil se aktivuje po ověření platby' : '• profile activates once payment is verified'}</li>
+                    <li>{language === 'cs' ? '• 1 344 Kč jednorázově' : '• 1,344 CZK one-time payment'}</li>
+                    <li>{language === 'cs' ? '• platí navždy, žádné další platby' : '• valid forever, no further payments'}</li>
                   </ul>
                   <button
                     onClick={chooseQr}
-                    disabled={starting || choosingQr}
+                    disabled={choosingQr}
                     className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 text-sm"
                   >
                     {choosingQr

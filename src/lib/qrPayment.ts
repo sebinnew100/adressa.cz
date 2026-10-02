@@ -1,5 +1,10 @@
 import QRCode from 'qrcode';
 
+// One-time, lifetime price for new signups — replaces the old recurring
+// 299 Kč/28-day model. Existing Stripe subscribers (pre-dating this change)
+// are left on their original recurring plan untouched.
+export const LIFETIME_PRICE_CZK = 134400; // 1344.00 CZK in haléře
+
 // Czech "QR Platba" standard (SPD - Short Payment Descriptor).
 // Spec: https://qr-platba.cz/pro-vyvojare/specifikace-formatu/
 

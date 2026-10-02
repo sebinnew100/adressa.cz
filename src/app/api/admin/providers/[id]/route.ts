@@ -74,12 +74,12 @@ export async function PATCH(
       }
     }
     if (body.confirmQrPayment === true) {
-      const existing = await prisma.provider.findUnique({ where: { id: params.id } });
-      if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-      const now = new Date();
-      const base = existing.paidUntil && existing.paidUntil > now ? existing.paidUntil : now;
-      const paidUntil = new Date(base);
-      paidUntil.setDate(paidUntil.getDate() + 28);
+      // QR payment is now a one-time, lifetime fee (1344 Kc) — no more
+      // recurring 28-day renewal. Far-future paidUntil keeps this provider
+      // permanently outside the qr-payment-reminders cron's reminder/
+      // deactivation windows without needing a separate schema field.
+      const paidUntil = new Date();
+      paidUntil.setFullYear(paidUntil.getFullYear() + 100);
       data.active = true;
       data.paidUntil = paidUntil;
     }

@@ -329,8 +329,8 @@ export async function sendProviderSalesPitchEmail(
 
   const pricingList = `
     <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-      <li>Spuštění profilu jen za <strong>15 Kč</strong></li>
-      <li>7 dní zdarma na vyzkoušení</li>
+      <li>Jednorázová platba <strong>1 344 Kč</strong></li>
+      <li>Platí navždy — žádné další poplatky</li>
     </ul>
   `;
 
@@ -383,9 +383,9 @@ export async function sendProviderSalesPitchEmail(
           <p style="margin:0 0 4px;font-weight:600;color:#111;font-size:14px;">${lead.name}</p>
           <p style="margin:0;color:#333;font-size:14px;line-height:1.5;">„${lead.message}"</p>
         </div>
-        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Potvrďte předplatné a začněte tyto poptávky dostávat:</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Zaplaťte jednorázový poplatek a začněte tyto poptávky dostávat:</p>
         ${pricingList}
-        ${ctaButton('Potvrdit předplatné')}
+        ${ctaButton('Aktivovat profil')}
         ${footer}
       </div>
     `;
@@ -399,9 +399,9 @@ export async function sendProviderSalesPitchEmail(
           Aktuálně máme <strong>8 lidí</strong>, kteří hledají ${service.toLowerCase()} v okolí ${city} a čekají na odpověď od místního odborníka jako jste vy.
         </p>
         <p style="color:#333;font-size:14px;line-height:1.6;">
-          Váš profil <strong>${provider.fullName}</strong> zatím nemá potvrzené předplatné, takže tyto poptávky nevidíte.
+          Váš profil <strong>${provider.fullName}</strong> zatím není zaplacený, takže tyto poptávky nevidíte.
         </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Potvrďte předplatné a začněte získávat zákazníky:</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Zaplaťte jednorázový poplatek a začněte získávat zákazníky:</p>
         ${pricingList}
         ${ctaButton('Chci tyto zákazníky')}
         ${footer}
@@ -417,7 +417,7 @@ export async function sendProviderSalesPitchEmail(
           Pro profil <strong>${provider.fullName}</strong> máme připraveno <strong>10 dalších poptávek</strong> na ${service.toLowerCase()} v ${city}, které jsou momentálně skryté.
         </p>
         <p style="color:#333;font-size:14px;line-height:1.6;">
-          Jakmile potvrdíte předplatné, získáte k nim okamžitý přístup.
+          Jakmile zaplatíte, získáte k nim okamžitý přístup — natrvalo, bez dalších poplatků.
         </p>
         ${pricingList}
         ${ctaButton('Odemknout poptávky')}
@@ -431,11 +431,11 @@ export async function sendProviderSalesPitchEmail(
         <h2 style="color:#111;margin-bottom:4px;">Poslední připomínka</h2>
         <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
         <p style="color:#333;font-size:14px;line-height:1.6;">
-          Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na potvrzení předplatného, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
+          Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na platbu, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
         </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance potvrdit předplatné a zůstat viditelní:</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance zaplatit a zůstat viditelní natrvalo:</p>
         ${pricingList}
-        ${ctaButton('Potvrdit předplatné')}
+        ${ctaButton('Aktivovat profil')}
         ${footer}
       </div>
     `;
