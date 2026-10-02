@@ -7,12 +7,12 @@ import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
 
 export const dynamic = 'force-dynamic';
 
-// Full automated cadence: intro -> waiting -> hidden -> followup, each 3 days
-// apart. Once the 4-stage sequence completes, hidden/followup keep
-// alternating every 3 days forever until the lead converts or an admin
-// marks them salesExempt.
+// Full automated cadence: intro -> waiting -> hidden, 3 days apart (the
+// first 3 sends). From there on (followup, then hidden/followup forever)
+// it drops to once a week until the lead converts or an admin marks them
+// salesExempt.
 const INITIAL_STAGE_GAP_DAYS = 3;
-const STEADY_STAGE_GAP_DAYS = 3;
+const STEADY_STAGE_GAP_DAYS = 7;
 const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "will be removed by" date shown in copy.
 
 // Conservative caps to protect a single sending domain from a rate-limit/
@@ -48,13 +48,12 @@ function nextDueStage(contacts: { type: string; sentAt: Date }[]): { stage: Sale
   const relevant = contacts.filter(c => STAGE_ORDER.includes(c.type as SalesPitchStage));
   if (relevant.length === 0) return null;
   const last = [...relevant].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime())[0];
-  const hasFollowup = relevant.some(c => c.type === 'followup');
 
   if (last.type === 'intro') return { stage: 'waiting', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
   if (last.type === 'waiting') return { stage: 'hidden', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
-  if (last.type === 'hidden') {
-    return { stage: 'followup', dueAt: addDays(last.sentAt, hasFollowup ? STEADY_STAGE_GAP_DAYS : INITIAL_STAGE_GAP_DAYS) };
-  }
+  // From the 4th send (followup) onward, including the ongoing hidden/followup
+  // alternation after that, cadence drops to once a week.
+  if (last.type === 'hidden') return { stage: 'followup', dueAt: addDays(last.sentAt, STEADY_STAGE_GAP_DAYS) };
   // last.type === 'followup'
   return { stage: 'hidden', dueAt: addDays(last.sentAt, STEADY_STAGE_GAP_DAYS) };
 }
