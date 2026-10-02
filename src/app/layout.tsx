@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthSessionProvider } from '@/components/AuthSessionProvider';
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthSessionProvider>
           <LanguageProvider>{children}</LanguageProvider>
         </AuthSessionProvider>
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
     </html>
