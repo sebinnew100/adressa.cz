@@ -8,6 +8,39 @@ function getResend(): Resend | null {
   return _resend;
 }
 
+// Shared branded wrapper so every email looks like it's actually from
+// adressa.cz instead of a plain unstyled template — matches the site's real
+// brand green (#1DBF73, see tailwind.config.ts) rather than the old orange
+// that didn't match anything on the live site.
+const BRAND_GREEN = '#1DBF73';
+const BRAND_GREEN_DARK = '#14883f';
+
+function emailShell(bodyHtml: string): string {
+  return `
+    <div style="background:#eef2f0;padding:24px 12px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+      <div style="max-width:560px;margin:0 auto;">
+        <div style="background:linear-gradient(135deg,${BRAND_GREEN},${BRAND_GREEN_DARK});border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+          <p style="margin:0;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;">🏡 adressa<span style="color:#d7f9e6;">.cz</span></p>
+          <p style="margin:6px 0 0;font-size:11px;color:#d7f9e6;letter-spacing:.1em;text-transform:uppercase;">Katalog místních služeb</p>
+        </div>
+        <div style="background:#ffffff;border-radius:0 0 16px 16px;padding:32px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+          ${bodyHtml}
+        </div>
+        <p style="text-align:center;color:#9aa0a6;font-size:11px;margin:16px 0 0;">adressa.cz · Česká republika</p>
+      </div>
+    </div>
+  `;
+}
+
+function brandButton(url: string, label: string): string {
+  return `
+    <a href="${url}"
+       style="display:inline-block;background:${BRAND_GREEN};color:#fff;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;font-size:15px;margin-top:12px;">
+      ${label}
+    </a>
+  `;
+}
+
 export async function sendAppointmentEmail(
   providerEmail: string,
   providerName: string,
@@ -26,20 +59,18 @@ export async function sendAppointmentEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to: providerEmail,
     subject: `Nová poptávka od ${appt.customerName} – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Nová poptávka schůzky</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">Zákazník vás kontaktoval přes adressa.cz</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr><td style="padding:8px 0;color:#555;width:140px;">Jméno zákazníka</td><td style="padding:8px 0;font-weight:600;color:#111;">${appt.customerName}</td></tr>
-          ${appt.customerEmail ? `<tr><td style="padding:8px 0;color:#555;">E-mail</td><td style="padding:8px 0;"><a href="mailto:${appt.customerEmail}" style="color:#f97316;">${appt.customerEmail}</a></td></tr>` : ''}
-          ${appt.customerPhone ? `<tr><td style="padding:8px 0;color:#555;">Telefon</td><td style="padding:8px 0;"><a href="tel:${appt.customerPhone}" style="color:#f97316;">${appt.customerPhone}</a></td></tr>` : ''}
-          ${appt.customerAddress ? `<tr><td style="padding:8px 0;color:#555;">Adresa</td><td style="padding:8px 0;color:#111;">${appt.customerAddress}</td></tr>` : ''}
-        </table>
-        ${appt.message ? `<div style="margin-top:20px;padding:16px;background:#f9fafb;border-radius:8px;"><p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Zpráva</p><p style="margin:0;color:#111;font-size:14px;line-height:1.6;">${appt.message}</p></div>` : ''}
-        <p style="color:#999;font-size:12px;margin-top:32px;">Tato zpráva byla odeslána přes adressa.cz</p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">📬 Nová poptávka schůzky</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">Zákazník vás kontaktoval přes adressa.cz</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;color:#555;width:140px;">Jméno zákazníka</td><td style="padding:8px 0;font-weight:600;color:#111;">${appt.customerName}</td></tr>
+        ${appt.customerEmail ? `<tr><td style="padding:8px 0;color:#555;">E-mail</td><td style="padding:8px 0;"><a href="mailto:${appt.customerEmail}" style="color:${BRAND_GREEN_DARK};">${appt.customerEmail}</a></td></tr>` : ''}
+        ${appt.customerPhone ? `<tr><td style="padding:8px 0;color:#555;">Telefon</td><td style="padding:8px 0;"><a href="tel:${appt.customerPhone}" style="color:${BRAND_GREEN_DARK};">${appt.customerPhone}</a></td></tr>` : ''}
+        ${appt.customerAddress ? `<tr><td style="padding:8px 0;color:#555;">Adresa</td><td style="padding:8px 0;color:#111;">${appt.customerAddress}</td></tr>` : ''}
+      </table>
+      ${appt.message ? `<div style="margin-top:20px;padding:16px;background:#f3faf6;border-radius:8px;border-left:3px solid ${BRAND_GREEN};"><p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Zpráva</p><p style="margin:0;color:#111;font-size:14px;line-height:1.6;">${appt.message}</p></div>` : ''}
+      <p style="color:#999;font-size:12px;margin-top:32px;">Tato zpráva byla odeslána přes adressa.cz</p>
+    `),
   });
 
   if (error) {
@@ -73,7 +104,7 @@ export async function sendAutopilotReportEmail(
       ${warningBanner}
       <p style="color:#555;margin-bottom:16px;">Dnes v noci (${dateStr}) bylo automaticky publikováno ${result.published.length} ${result.published.length === 1 ? 'nový článek' : 'nové články'}:</p>
       <ul style="padding-left:20px;color:#111;">
-        ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:#f97316;">${a.title}</a>${a.cityNameCz ? ` <span style="color:#999;">— ${a.cityNameCz}</span>` : ''}</li>`).join('')}
+        ${result.published.map(a => `<li style="margin-bottom:8px;"><a href="${baseUrl}/clanky/${a.slug}" style="color:${BRAND_GREEN_DARK};">${a.title}</a>${a.cityNameCz ? ` <span style="color:#999;">— ${a.cityNameCz}</span>` : ''}</li>`).join('')}
       </ul>
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes v noci se nepublikoval žádný nový článek. Důvod: ${result.reason || 'neznámý'}.</p>`;
@@ -88,19 +119,17 @@ export async function sendAutopilotReportEmail(
       : result.published.length > 0
       ? `✅ ${result.published.length} nové články publikovány – adressa.cz`
       : `⚠️ Autopilot dnes nic nepublikoval – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Denní report autopilota článků</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatické publikování</p>
-        ${body}
-        <p style="color:#111;font-size:14px;margin-top:24px;font-weight:600;">
-          Celkem publikováno: ${result.totalPublished} / ${result.target}
-        </p>
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Tento e-mail byl odeslán automaticky po dokončení denního běhu autopilota.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">📰 Denní report autopilota článků</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">automatické publikování</p>
+      ${body}
+      <p style="color:#111;font-size:14px;margin-top:24px;font-weight:600;">
+        Celkem publikováno: ${result.totalPublished} / ${result.target}
+      </p>
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Tento e-mail byl odeslán automaticky po dokončení denního běhu autopilota.
+      </p>
+    `),
   });
 
   if (error) {
@@ -143,17 +172,15 @@ export async function sendProviderImportReportEmail(
     subject: result.added.length > 0
       ? `✅ ${result.added.length} nových poskytovatelů přidáno – adressa.cz`
       : `⚠️ Dnes nebyl přidán žádný poskytovatel – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Denní report – přidávání poskytovatelů</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatický import z Google Places</p>
-        ${body}
-        ${notifiedLine}
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Tito poskytovatelé jsou reální (z Google Places) a jsou automaticky vyňati z prodejního oslovování, dokud si to sami nezažádají.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">🧑‍🔧 Denní report – přidávání poskytovatelů</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">automatický import z Google Places</p>
+      ${body}
+      ${notifiedLine}
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Tito poskytovatelé jsou reální (z Google Places) a jsou automaticky vyňati z prodejního oslovování, dokud si to sami nezažádají.
+      </p>
+    `),
   });
 
   if (error) {
@@ -177,17 +204,15 @@ export async function sendNewsletterWelcomeEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `Přihlášení k odběru novinek – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:16px;">Děkujeme za přihlášení!</h2>
-        <p style="color:#333;line-height:1.6;">
-          Budeme vám občas posílat novinky a tipy z adressa.cz.
-        </p>
-        <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
-          Kdykoliv se můžete odhlásit — <a href="${unsubscribeUrl}" style="color:#166534;">zrušit odběr</a>.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 16px;">🎉 Děkujeme za přihlášení!</h2>
+      <p style="color:#333;line-height:1.6;">
+        Budeme vám občas posílat novinky a tipy z adressa.cz.
+      </p>
+      <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
+        Kdykoliv se můžete odhlásit — <a href="${unsubscribeUrl}" style="color:${BRAND_GREEN_DARK};">zrušit odběr</a>.
+      </p>
+    `),
   });
 
   if (error) {
@@ -212,24 +237,22 @@ export async function sendListingNotificationEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `Vytvořili jsme pro vás profil na adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:16px;">Dobrý den,</h2>
-        <p style="color:#333;line-height:1.6;">
-          všimli jsme si, že <strong>${providerName}</strong> působí ve svém oboru, a vytvořili jsme pro vás bezplatný profil na katalogu adressa.cz:
-        </p>
-        <p style="margin:20px 0;">
-          <a href="${profileUrl}" style="color:#fff;background:#166534;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Zobrazit váš profil</a>
-        </p>
-        <p style="color:#333;line-height:1.6;">
-          Pokud byste měli zájem získat přes adressa.cz více zákazníků, napište nám na
-          <a href="mailto:customerserviceentfin@gmail.com" style="color:#166534;">customerserviceentfin@gmail.com</a>.
-        </p>
-        <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
-          Pokud si nepřejete být v katalogu uvedeni, dejte nám prosím vědět na stejný e-mail a profil odstraníme.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 16px;">👋 Dobrý den,</h2>
+      <p style="color:#333;line-height:1.6;">
+        všimli jsme si, že <strong>${providerName}</strong> působí ve svém oboru, a vytvořili jsme pro vás bezplatný profil na katalogu adressa.cz:
+      </p>
+      <p style="margin:20px 0;">
+        ${brandButton(profileUrl, 'Zobrazit váš profil')}
+      </p>
+      <p style="color:#333;line-height:1.6;">
+        Pokud byste měli zájem získat přes adressa.cz více zákazníků, napište nám na
+        <a href="mailto:customerserviceentfin@gmail.com" style="color:${BRAND_GREEN_DARK};">customerserviceentfin@gmail.com</a>.
+      </p>
+      <p style="color:#777;line-height:1.6;font-size:13px;margin-top:24px;">
+        Pokud si nepřejete být v katalogu uvedeni, dejte nám prosím vědět na stejný e-mail a profil odstraníme.
+      </p>
+    `),
   });
 
   if (error) {
@@ -269,16 +292,14 @@ export async function sendProcurementImportReportEmail(
     subject: result.imported > 0
       ? `✅ ${result.imported} nových veřejných zakázek – adressa.cz`
       : `⚠️ Dnes žádné nové veřejné zakázky – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Měsíční report – veřejné zakázky</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — automatický import z ISVZ Open Data</p>
-        ${body}
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Data pochází z oficiálních otevřených dat Registru veřejných zakázek (isvz.nipez.cz/opendata).
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">📋 Měsíční report – veřejné zakázky</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">automatický import z ISVZ Open Data</p>
+      ${body}
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Data pochází z oficiálních otevřených dat Registru veřejných zakázek (isvz.nipez.cz/opendata).
+      </p>
+    `),
   });
 
   if (error) {
@@ -320,13 +341,6 @@ export async function sendProviderSalesPitchEmail(
   const service = provider.serviceNameCz;
   const city = provider.cityNameCz;
 
-  const ctaButton = (label: string) => `
-    <a href="${activateUrl}"
-       style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;margin-top:12px;">
-      ${label}
-    </a>
-  `;
-
   const pricingList = `
     <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
       <li>Jednorázová platba <strong>1 344 Kč</strong></li>
@@ -352,93 +366,85 @@ export async function sendProviderSalesPitchEmail(
       ? provider.description.length > 140 ? provider.description.slice(0, 140).trim() + '…' : provider.description
       : null;
     subject = `${provider.fullName}, vytvořili jsme pro vás profil na adressa.cz`;
-    html = `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Vítejte na adressa.cz</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Ahoj <strong>${provider.fullName}</strong>, jsme adressa.cz — místo, kde lidé v ${city} hledají ${service.toLowerCase()}.
-          Váš profil jsme pro vás již vytvořili a je veřejně viditelný.
-        </p>
-        <div style="margin:20px 0;border:1px solid #eee;border-radius:12px;overflow:hidden;">
-          ${provider.picturePath ? `<img src="${provider.picturePath}" alt="${provider.fullName}" style="width:100%;height:160px;object-fit:cover;display:block;" />` : ''}
-          <div style="padding:18px;">
-            <p style="margin:0 0 4px;font-weight:700;color:#111;font-size:17px;">${provider.fullName}</p>
-            <p style="margin:0 0 10px;color:#f97316;font-size:13px;font-weight:600;">${service} · ${city}</p>
-            ${descriptionSnippet ? `<p style="margin:0 0 16px;color:#555;font-size:13px;line-height:1.5;">${descriptionSnippet}</p>` : ''}
-            <a href="${profileUrl}"
-               style="display:inline-block;background:#111;color:#fff;font-weight:700;padding:13px 26px;border-radius:8px;text-decoration:none;font-size:15px;">
-              👀 Zobrazit celý profil
-            </a>
-          </div>
+    html = emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">Vítejte na adressa.cz</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Ahoj <strong>${provider.fullName}</strong>, jsme adressa.cz — místo, kde lidé v ${city} hledají ${service.toLowerCase()}.
+        Váš profil jsme pro vás již vytvořili a je veřejně viditelný.
+      </p>
+      <div style="margin:20px 0;border:1px solid #eee;border-radius:12px;overflow:hidden;">
+        ${provider.picturePath ? `<img src="${provider.picturePath}" alt="${provider.fullName}" style="width:100%;height:160px;object-fit:cover;display:block;" />` : ''}
+        <div style="padding:18px;">
+          <p style="margin:0 0 4px;font-weight:700;color:#111;font-size:17px;">${provider.fullName}</p>
+          <p style="margin:0 0 10px;color:${BRAND_GREEN_DARK};font-size:13px;font-weight:600;">${service} · ${city}</p>
+          ${descriptionSnippet ? `<p style="margin:0 0 16px;color:#555;font-size:13px;line-height:1.5;">${descriptionSnippet}</p>` : ''}
+          <a href="${profileUrl}"
+             style="display:inline-block;background:#111;color:#fff;font-weight:700;padding:13px 26px;border-radius:8px;text-decoration:none;font-size:15px;">
+            👀 Zobrazit celý profil
+          </a>
         </div>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Co pro vás adressa.cz dělá:</p>
-        <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-          <li>Zákazníci vás najdou přímo na Google i na webu</li>
-          <li>Poptávky chodí rovnou vám na e-mail</li>
-          <li>Profesní profil s recenzemi zvyšuje důvěru zákazníků</li>
-        </ul>
-        <div style="margin-top:20px;padding:16px;background:#f9fafb;border-radius:8px;border-left:3px solid #f97316;">
-          <p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Nedávná poptávka pro váš obor</p>
-          <p style="margin:0 0 4px;font-weight:600;color:#111;font-size:14px;">${lead.name}</p>
-          <p style="margin:0;color:#333;font-size:14px;line-height:1.5;">„${lead.message}"</p>
-        </div>
-        <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Zaplaťte jednorázový poplatek a začněte tyto poptávky dostávat:</p>
-        ${pricingList}
-        ${ctaButton('Aktivovat profil')}
-        ${footer}
       </div>
-    `;
+      <p style="color:#333;font-size:14px;line-height:1.6;">Co pro vás adressa.cz dělá:</p>
+      <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
+        <li>Zákazníci vás najdou přímo na Google i na webu</li>
+        <li>Poptávky chodí rovnou vám na e-mail</li>
+        <li>Profesní profil s recenzemi zvyšuje důvěru zákazníků</li>
+      </ul>
+      <div style="margin-top:20px;padding:16px;background:#f3faf6;border-radius:8px;border-left:3px solid ${BRAND_GREEN};">
+        <p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Nedávná poptávka pro váš obor</p>
+        <p style="margin:0 0 4px;font-weight:600;color:#111;font-size:14px;">${lead.name}</p>
+        <p style="margin:0;color:#333;font-size:14px;line-height:1.5;">„${lead.message}"</p>
+      </div>
+      <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Zaplaťte jednorázový poplatek a začněte tyto poptávky dostávat:</p>
+      ${pricingList}
+      ${brandButton(activateUrl, 'Aktivovat profil')}
+      ${footer}
+    `);
   } else if (opts.stage === 'waiting') {
     subject = `${provider.fullName}, 8 lidí čeká na ${service.toLowerCase()} ve vašem okolí`;
-    html = `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">8 lidí čeká na odpověď</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Aktuálně máme <strong>8 lidí</strong>, kteří hledají ${service.toLowerCase()} v okolí ${city} a čekají na odpověď od místního odborníka jako jste vy.
-        </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Váš profil <strong>${provider.fullName}</strong> zatím není zaplacený, takže tyto poptávky nevidíte.
-        </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Zaplaťte jednorázový poplatek a začněte získávat zákazníky:</p>
-        ${pricingList}
-        ${ctaButton('Chci tyto zákazníky')}
-        ${footer}
-      </div>
-    `;
+    html = emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">⏳ 8 lidí čeká na odpověď</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Aktuálně máme <strong>8 lidí</strong>, kteří hledají ${service.toLowerCase()} v okolí ${city} a čekají na odpověď od místního odborníka jako jste vy.
+      </p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Váš profil <strong>${provider.fullName}</strong> zatím není zaplacený, takže tyto poptávky nevidíte.
+      </p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">Zaplaťte jednorázový poplatek a začněte získávat zákazníky:</p>
+      ${pricingList}
+      ${brandButton(activateUrl, 'Chci tyto zákazníky')}
+      ${footer}
+    `);
   } else if (opts.stage === 'hidden') {
     subject = `10 skrytých poptávek čeká na vaši odpověď`;
-    html = `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">10 poptávek čeká, až si je odemknete</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Pro profil <strong>${provider.fullName}</strong> máme připraveno <strong>10 dalších poptávek</strong> na ${service.toLowerCase()} v ${city}, které jsou momentálně skryté.
-        </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Jakmile zaplatíte, získáte k nim okamžitý přístup — natrvalo, bez dalších poplatků.
-        </p>
-        ${pricingList}
-        ${ctaButton('Odemknout poptávky')}
-        ${footer}
-      </div>
-    `;
+    html = emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">🔒 10 poptávek čeká, až si je odemknete</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Pro profil <strong>${provider.fullName}</strong> máme připraveno <strong>10 dalších poptávek</strong> na ${service.toLowerCase()} v ${city}, které jsou momentálně skryté.
+      </p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Jakmile zaplatíte, získáte k nim okamžitý přístup — natrvalo, bez dalších poplatků.
+      </p>
+      ${pricingList}
+      ${brandButton(activateUrl, 'Odemknout poptávky')}
+      ${footer}
+    `);
   } else {
     subject = `Poslední připomínka — nenechte si ujít zákazníky na adressa.cz`;
-    html = `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Poslední připomínka</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na platbu, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
-        </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance zaplatit a zůstat viditelní natrvalo:</p>
-        ${pricingList}
-        ${ctaButton('Aktivovat profil')}
-        ${footer}
-      </div>
-    `;
+    html = emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">⏰ Poslední připomínka</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na platbu, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
+      </p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance zaplatit a zůstat viditelní natrvalo:</p>
+      ${pricingList}
+      ${brandButton(activateUrl, 'Aktivovat profil')}
+      ${footer}
+    `);
   }
 
   const { error } = await resend.emails.send({
@@ -504,25 +510,23 @@ export async function sendSalesAutopilotReportEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `Sales autopilot: ${result.sent.length + result.scheduled.length} osloveno, ${result.pastDeadline.length} po termínu – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Denní report sales autopilota</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:8px;">adressa.cz — ${dateStr}</p>
-        <p style="color:#111;font-size:14px;font-weight:600;">
-          Celkem odesláno dnes: ${result.sent.length + result.scheduled.length} e-mailů
-        </p>
-        <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
-        ${result.gapWarning ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin:12px 0;font-size:13px;">${result.gapWarning}</p>` : ''}
-        ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
-        ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
-        ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
-        ${totalActions === 0
-          ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Tento e-mail byl odeslán automaticky po dokončení denního běhu sales autopilota.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">📊 Denní report sales autopilota</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:8px;">${dateStr}</p>
+      <p style="color:#111;font-size:14px;font-weight:600;">
+        Celkem odesláno dnes: ${result.sent.length + result.scheduled.length} e-mailů
+      </p>
+      <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
+      ${result.gapWarning ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin:12px 0;font-size:13px;">${result.gapWarning}</p>` : ''}
+      ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
+      ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
+      ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
+      ${totalActions === 0
+        ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Tento e-mail byl odeslán automaticky po dokončení denního běhu sales autopilota.
+      </p>
+    `),
   });
 
   if (error) {
@@ -547,22 +551,17 @@ export async function sendVerificationEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to: email,
     subject: 'Ověřte svůj e-mail / Verify your email – adressa.cz',
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:8px;">Vítejte na adressa.cz</h2>
-        <p style="color:#555;margin-bottom:24px;">
-          Ahoj <strong>${name}</strong>, pro aktivaci vašeho profilu prosím ověřte svůj e-mail.
-        </p>
-        <a href="${verifyUrl}"
-           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
-          Ověřit e-mail
-        </a>
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Pokud jste si nepodali profil, tento e-mail ignorujte.<br/>
-          If you didn't register, please ignore this email.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 8px;">Vítejte na adressa.cz</h2>
+      <p style="color:#555;margin-bottom:24px;">
+        Ahoj <strong>${name}</strong>, pro aktivaci vašeho profilu prosím ověřte svůj e-mail.
+      </p>
+      ${brandButton(verifyUrl, 'Ověřit e-mail')}
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Pokud jste si nepodali profil, tento e-mail ignorujte.<br/>
+        If you didn't register, please ignore this email.
+      </p>
+    `),
   });
 
   if (error) {
@@ -588,24 +587,19 @@ export async function sendQrPaymentReminderEmail(
     subject: opts.dueToday
       ? `Dnes je splatná vaše platba – adressa.cz`
       : `Připomínka platby za profil – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">${opts.dueToday ? 'Platba je splatná dnes' : 'Blíží se splatnost platby'}</h2>
-        <p style="color:#555;font-size:14px;line-height:1.6;">
-          Ahoj ${providerName}, ${opts.dueToday
-            ? `dnes (${dateStr}) je splatná platba za váš profil na adressa.cz.`
-            : `${dateStr} je splatná platba za váš profil na adressa.cz.`}
-          Naskenujte QR kód a zaplaťte bankovním převodem, aby váš profil zůstal viditelný.
-        </p>
-        <a href="${opts.aktivovatUrl}"
-           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
-          Zobrazit QR platbu
-        </a>
-        <p style="color:#999;font-size:12px;margin-top:32px;">
-          Pokud jste již zaplatili, na stejné stránce najdete tlačítko "Již jsem zaplatil/a".
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">${opts.dueToday ? '⏰ Platba je splatná dnes' : '🔔 Blíží se splatnost platby'}</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;">
+        Ahoj ${providerName}, ${opts.dueToday
+          ? `dnes (${dateStr}) je splatná platba za váš profil na adressa.cz.`
+          : `${dateStr} je splatná platba za váš profil na adressa.cz.`}
+        Naskenujte QR kód a zaplaťte bankovním převodem, aby váš profil zůstal viditelný.
+      </p>
+      ${brandButton(opts.aktivovatUrl, 'Zobrazit QR platbu')}
+      <p style="color:#999;font-size:12px;margin-top:32px;">
+        Pokud jste již zaplatili, na stejné stránce najdete tlačítko "Již jsem zaplatil/a".
+      </p>
+    `),
   });
 
   if (error) {
@@ -627,19 +621,14 @@ export async function sendQrPaymentDeactivatedEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to: providerEmail,
     subject: `Váš profil byl skryt – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Váš profil byl dočasně skryt</h2>
-        <p style="color:#555;font-size:14px;line-height:1.6;">
-          Ahoj ${providerName}, platba za váš profil na adressa.cz nebyla přijata včas, proto byl profil skryt z veřejného seznamu.
-          Zaplaťte prosím QR kódem níže a jakmile platbu potvrdíme, profil znovu zveřejníme.
-        </p>
-        <a href="${aktivovatUrl}"
-           style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
-          Zobrazit QR platbu
-        </a>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">Váš profil byl dočasně skryt</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;">
+        Ahoj ${providerName}, platba za váš profil na adressa.cz nebyla přijata včas, proto byl profil skryt z veřejného seznamu.
+        Zaplaťte prosím QR kódem níže a jakmile platbu potvrdíme, profil znovu zveřejníme.
+      </p>
+      ${brandButton(aktivovatUrl, 'Zobrazit QR platbu')}
+    `),
   });
 
   if (error) {
@@ -661,15 +650,13 @@ export async function sendQrSelfReportedEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `Poskytovatel hlásí zaplaceno (VS ${variableSymbol}) – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Poskytovatel hlásí zaplacenou QR platbu</h2>
-        <p style="color:#555;font-size:14px;line-height:1.6;">
-          <strong>${providerName}</strong> označil/a, že zaplatil/a QR platbu. Zkontrolujte bankovní výpis
-          podle variabilního symbolu <strong>${variableSymbol}</strong> a potvrďte platbu v administraci.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">💬 Poskytovatel hlásí zaplacenou QR platbu</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;">
+        <strong>${providerName}</strong> označil/a, že zaplatil/a QR platbu. Zkontrolujte bankovní výpis
+        podle variabilního symbolu <strong>${variableSymbol}</strong> a potvrďte platbu v administraci.
+      </p>
+    `),
   });
 
   if (error) {
@@ -691,19 +678,20 @@ export async function sendLifetimeAccessConfirmedEmail(
     to: providerEmail,
     replyTo: 'customerserviceentfin@gmail.com',
     subject: `🎉 Gratulujeme, máte doživotní přístup – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Gratulujeme, ${providerName}!</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Vaše platba byla přijata a potvrzena. Váš profil je nyní aktivní <strong>natrvalo</strong> —
-          žádné další platby, žádné obnovování, žádné termíny.
-        </p>
-        <p style="color:#333;font-size:14px;line-height:1.6;">
-          Zákazníci vás od teď mohou najít a kontaktovat přímo přes adressa.cz. Děkujeme za důvěru!
-        </p>
+    html: emailShell(`
+      <div style="text-align:center;font-size:40px;margin-bottom:8px;">🎉</div>
+      <h2 style="color:#111;margin:0 0 4px;text-align:center;">Gratulujeme, ${providerName}!</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;text-align:center;">katalog místních služeb</p>
+      <div style="background:#f3faf6;border:1px solid #d7f9e6;border-radius:12px;padding:20px;margin-bottom:20px;text-align:center;">
+        <p style="margin:0;color:${BRAND_GREEN_DARK};font-weight:700;font-size:16px;">✅ Platba přijata a potvrzena</p>
       </div>
-    `,
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Váš profil je nyní aktivní <strong>natrvalo</strong> — žádné další platby, žádné obnovování, žádné termíny.
+      </p>
+      <p style="color:#333;font-size:14px;line-height:1.6;">
+        Zákazníci vás od teď mohou najít a kontaktovat přímo přes adressa.cz. Děkujeme za důvěru!
+      </p>
+    `),
   });
 
   if (error) {
@@ -725,15 +713,13 @@ export async function sendQrPaymentConfirmedAdminEmail(
     from: 'adressa.cz <noreply@adressa.cz>',
     to,
     subject: `✅ Platba potvrzena — ${providerName} (VS ${variableSymbol})`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Platba potvrzena</h2>
-        <p style="color:#555;font-size:14px;line-height:1.6;">
-          Právě jste v administraci potvrdili doživotní platbu (1 344 Kč) od <strong>${providerName}</strong>
-          (variabilní symbol ${variableSymbol}). Profil je nyní aktivní natrvalo.
-        </p>
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">💰 Platba potvrzena</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;">
+        Právě jste v administraci potvrdili doživotní platbu (1 344 Kč) od <strong>${providerName}</strong>
+        (variabilní symbol ${variableSymbol}). Profil je nyní aktivní natrvalo.
+      </p>
+    `),
   });
 
   if (error) {
@@ -759,18 +745,16 @@ export async function sendQrReminderCronReportEmail(
     subject: hasActivity
       ? `QR platby: ${result.reminded} připomínek, ${result.deactivated} skrytí – adressa.cz`
       : `QR platby: bez akce dnes – adressa.cz`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
-        <h2 style="color:#111;margin-bottom:4px;">Denní report – QR platby profilů</h2>
-        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — ${dateStr}</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr><td style="padding:8px 0;color:#555;">Připomínky (−3 dny)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.reminded}</td></tr>
-          <tr><td style="padding:8px 0;color:#555;">Splatné dnes</td><td style="padding:8px 0;text-align:right;color:#111;">${result.dueToday}</td></tr>
-          <tr><td style="padding:8px 0;color:#555;">Skryto (neplaceno)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.deactivated}</td></tr>
-        </table>
-        ${result.reason ? `<p style="color:#c0392b;font-size:13px;margin-top:16px;">Chyba: ${result.reason}</p>` : ''}
-      </div>
-    `,
+    html: emailShell(`
+      <h2 style="color:#111;margin:0 0 4px;">🏦 Denní report – QR platby profilů</h2>
+      <p style="color:#777;font-size:13px;margin-bottom:24px;">${dateStr}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:8px 0;color:#555;">Připomínky (−3 dny)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.reminded}</td></tr>
+        <tr><td style="padding:8px 0;color:#555;">Splatné dnes</td><td style="padding:8px 0;text-align:right;color:#111;">${result.dueToday}</td></tr>
+        <tr><td style="padding:8px 0;color:#555;">Skryto (neplaceno)</td><td style="padding:8px 0;text-align:right;color:#111;">${result.deactivated}</td></tr>
+      </table>
+      ${result.reason ? `<p style="color:#c0392b;font-size:13px;margin-top:16px;">Chyba: ${result.reason}</p>` : ''}
+    `),
   });
 
   if (error) {
