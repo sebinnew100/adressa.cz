@@ -18,8 +18,8 @@ const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "wil
 // Conservative caps to protect a single sending domain from a rate-limit/
 // spam flag now that all 4 stages can fire automatically instead of just 2.
 // Adjust once real Resend plan limits are confirmed.
-const NEW_INTRO_DAILY_CAP = 25;
-const TOTAL_DAILY_CAP = 45;
+const NEW_INTRO_DAILY_CAP = 45;
+const TOTAL_DAILY_CAP = 80;
 
 const STAGE_ORDER: SalesPitchStage[] = ['intro', 'waiting', 'hidden', 'followup'];
 
