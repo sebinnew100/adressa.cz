@@ -683,7 +683,9 @@ export default function AdminDashboard() {
                               </div>
                               {provider.paidUntil && (
                                 <div className="text-gray-500">
-                                  do {new Date(provider.paidUntil).toLocaleDateString('cs-CZ')}
+                                  {new Date(provider.paidUntil).getFullYear() - new Date().getFullYear() > 50
+                                    ? 'navždy'
+                                    : `do ${new Date(provider.paidUntil).toLocaleDateString('cs-CZ')}`}
                                 </div>
                               )}
                               <button
