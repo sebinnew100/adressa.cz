@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import { prisma } from '@/lib/db';
+import { prisma, withRetry } from '@/lib/db';
 import { serviceIdForPoptavejCategory } from '@/lib/poptavejCategoryMapping';
 import { sendProcurementImportReportEmail } from '@/lib/email';
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         // older too — only today's new listings should be added each run.
         if (!isToday(listing.publishedAt)) break pageLoop;
 
-        const existing = await prisma.procurementNotice.findUnique({ where: { externalId: listing.externalId } });
+        const existing = await withRetry(() => prisma.procurementNotice.findUnique({ where: { externalId: listing.externalId } }));
         if (existing) continue;
 
         const relatedServiceId = serviceIdForPoptavejCategory(listing.categorySlug);

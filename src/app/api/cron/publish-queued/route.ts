@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withRetry } from '@/lib/db';
 import { sendAutopilotReportEmail } from '@/lib/email';
 import { submitToIndexNow } from '@/lib/indexNow';
 import { postArticleToFacebook } from '@/lib/facebook';
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function runPublishQueued() {
-  const currentTotal = await prisma.article.count({ where: { published: true } });
+  const currentTotal = await withRetry(() => prisma.article.count({ where: { published: true } }));
   if (currentTotal >= AUTOPILOT_TARGET_TOTAL) {
     const result = { published: [], totalPublished: currentTotal, target: AUTOPILOT_TARGET_TOTAL, done: true, reason: 'target reached' };
     await sendReport(result);

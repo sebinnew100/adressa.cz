@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, withRetry } from '@/lib/db';
 import { sendProviderImportReportEmail, sendListingNotificationEmail } from '@/lib/email';
 import { searchGooglePlaces } from '@/lib/googlePlaces';
 import { SERVICES } from '@/data/services';
@@ -41,10 +41,10 @@ async function sendReport(result: {
 // email, tracked via listingNotifiedAt so nobody gets it twice. Naturally
 // catches both the existing backlog and today's new additions in one pass.
 async function sendListingNotifications(): Promise<number> {
-  const candidates = await prisma.provider.findMany({
+  const candidates = await withRetry(() => prisma.provider.findMany({
     where: { active: true, email: { not: null }, listingNotifiedAt: null },
     select: { id: true, fullName: true, email: true },
-  });
+  }));
 
   let sent = 0;
   for (const p of candidates) {
@@ -95,10 +95,10 @@ async function runAddProviders() {
   }
 
   const placeIds = results.map(r => r.placeId);
-  const existing = await prisma.provider.findMany({
+  const existing = await withRetry(() => prisma.provider.findMany({
     where: { placeId: { in: placeIds } },
     select: { placeId: true },
-  });
+  }));
   const existingIds = new Set(existing.map(p => p.placeId));
 
   const notDuplicate = results.filter(r => !existingIds.has(r.placeId));
