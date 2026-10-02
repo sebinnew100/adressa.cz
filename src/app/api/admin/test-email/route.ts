@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
+import { sendLifetimeAccessConfirmedEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,13 +23,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, reason: 'RESEND_API_KEY not set in this environment' }, { status: 200 });
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { data, error } = await resend.emails.send({
-    from: 'adressa.cz <noreply@adressa.cz>',
-    to,
-    subject: 'Testovací e-mail — adressa.cz',
-    html: '<p>Toto je testovací e-mail z /admin/sales pro ověření doručování přes Resend.</p>',
-  });
-
-  return NextResponse.json({ ok: !error, data, error });
+  const ok = await sendLifetimeAccessConfirmedEmail(to, 'Ukázkový Poskytovatel');
+  return NextResponse.json({ ok });
 }
