@@ -338,6 +338,9 @@ export async function sendProviderSalesPitchEmail(
     <p style="color:#999;font-size:12px;margin-top:32px;">
       Pokud si profil na adressa.cz nepřejete, nemusíte nic dělat — bude po ${deadlineStr} automaticky odebrán.
     </p>
+    <p style="color:#bbb;font-size:11px;margin-top:8px;">
+      Máte dotaz nebo si nepřejete dostávat tyto e-maily? Napište na <a href="mailto:customerserviceentfin@gmail.com" style="color:#bbb;">customerserviceentfin@gmail.com</a>.
+    </p>
   `;
 
   let subject: string;
