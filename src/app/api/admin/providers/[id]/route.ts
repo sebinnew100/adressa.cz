@@ -3,6 +3,7 @@ import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
 import { submitToIndexNow } from '@/lib/indexNow';
+import { sendLifetimeAccessConfirmedEmail, sendQrPaymentConfirmedAdminEmail } from '@/lib/email';
 
 function requireAdmin(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -93,6 +94,18 @@ export async function PATCH(
         `https://www.adressa.cz/providers/${updated.id}`,
         `https://www.adressa.cz/${updated.serviceId}/${updated.cityId}`,
       ]);
+    }
+
+    if (body.confirmQrPayment === true) {
+      if (updated.email) {
+        await sendLifetimeAccessConfirmedEmail(updated.email, updated.fullName).catch(err =>
+          console.error('sendLifetimeAccessConfirmedEmail failed:', err));
+      }
+      const adminTo = process.env.AUTOPILOT_REPORT_EMAIL;
+      if (adminTo) {
+        await sendQrPaymentConfirmedAdminEmail(adminTo, updated.fullName, updated.paymentVariableSymbol).catch(err =>
+          console.error('sendQrPaymentConfirmedAdminEmail failed:', err));
+      }
     }
 
     return NextResponse.json(updated);

@@ -679,6 +679,70 @@ export async function sendQrSelfReportedEmail(
   return true;
 }
 
+export async function sendLifetimeAccessConfirmedEmail(
+  providerEmail: string,
+  providerName: string,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to: providerEmail,
+    replyTo: 'customerserviceentfin@gmail.com',
+    subject: `🎉 Gratulujeme, máte doživotní přístup – adressa.cz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Gratulujeme, ${providerName}!</h2>
+        <p style="color:#777;font-size:13px;margin-bottom:24px;">adressa.cz — katalog místních služeb</p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Vaše platba byla přijata a potvrzena. Váš profil je nyní aktivní <strong>natrvalo</strong> —
+          žádné další platby, žádné obnovování, žádné termíny.
+        </p>
+        <p style="color:#333;font-size:14px;line-height:1.6;">
+          Zákazníci vás od teď mohou najít a kontaktovat přímo přes adressa.cz. Děkujeme za důvěru!
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendLifetimeAccessConfirmedEmail failed:', providerEmail, error);
+    return false;
+  }
+  return true;
+}
+
+export async function sendQrPaymentConfirmedAdminEmail(
+  to: string,
+  providerName: string,
+  variableSymbol: number,
+): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  const { error } = await resend.emails.send({
+    from: 'adressa.cz <noreply@adressa.cz>',
+    to,
+    subject: `✅ Platba potvrzena — ${providerName} (VS ${variableSymbol})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <h2 style="color:#111;margin-bottom:4px;">Platba potvrzena</h2>
+        <p style="color:#555;font-size:14px;line-height:1.6;">
+          Právě jste v administraci potvrdili doživotní platbu (1 344 Kč) od <strong>${providerName}</strong>
+          (variabilní symbol ${variableSymbol}). Profil je nyní aktivní natrvalo.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('sendQrPaymentConfirmedAdminEmail failed:', to, error);
+    return false;
+  }
+  return true;
+}
+
 export async function sendQrReminderCronReportEmail(
   to: string,
   result: { reminded: number; dueToday: number; deactivated: number; reason?: string },
