@@ -7,12 +7,12 @@ import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
 
 export const dynamic = 'force-dynamic';
 
-// Full automated cadence: intro -> waiting -> hidden -> followup, each 2 days
-// apart. Once the 4-stage sequence completes, hidden/followup alternate
-// every ~3.5 days forever (roughly "twice a week" combined) until the lead
-// converts or an admin marks them salesExempt.
-const INITIAL_STAGE_GAP_DAYS = 2;
-const STEADY_STAGE_GAP_DAYS = 3.5;
+// Full automated cadence: intro -> waiting -> hidden -> followup, each 3 days
+// apart. Once the 4-stage sequence completes, hidden/followup keep
+// alternating every 3 days forever until the lead converts or an admin
+// marks them salesExempt.
+const INITIAL_STAGE_GAP_DAYS = 3;
+const STEADY_STAGE_GAP_DAYS = 3;
 const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "will be removed by" date shown in copy.
 
 // Conservative caps to protect a single sending domain from a rate-limit/
