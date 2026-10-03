@@ -2,11 +2,13 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'adressa.cz — Místní poskytovatelé služeb',
     short_name: 'adressa.cz',
     description: 'Najděte místní řemeslníky a profesionály v České republice.',
     start_url: '/',
     display: 'standalone',
+    orientation: 'portrait',
     background_color: '#ffffff',
     theme_color: '#1DBF73',
     icons: [
