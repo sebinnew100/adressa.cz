@@ -25,9 +25,10 @@ export default function PrivacyPolicyPage() {
       <ul>
         <li>
           <strong>Poskytovatelé služeb (registrace profilu):</strong> jméno/název firmy, e-mail, telefon,
-          adresa, kategorie a popis služby, profilová fotografie, a údaje potřebné ke zpracování platby
-          předplatného (platby zpracovává výhradně Stripe — čísla platebních karet nikdy neukládáme ani
-          nevidíme).
+          adresa, kategorie a popis služby, profilová fotografie, a údaje potřebné ke zpracování platby.
+          Platbu lze provést buď bankovním převodem (QR kód s variabilním symbolem, platbu ověřujeme ručně
+          podle bankovního výpisu), nebo u starších účtů kartou přes Stripe — čísla platebních karet
+          nikdy neukládáme ani nevidíme.
         </li>
         <li>
           <strong>Poptávky a objednávky termínů:</strong> jméno, e-mail, telefon, adresa a text zprávy,
@@ -62,9 +63,10 @@ export default function PrivacyPolicyPage() {
 
       <h2>S kým údaje sdílíme</h2>
       <p>
-        Údaje sdílíme pouze s poskytovateli služeb nezbytných pro chod webu: Stripe (zpracování plateb),
-        Resend (odesílání e-mailů), Vercel a Neon (hosting a databáze) a Google (zobrazování reklam
-        přes AdSense). Žádné osobní údaje neprodáváme třetím stranám.
+        Údaje sdílíme pouze s poskytovateli služeb nezbytných pro chod webu: Stripe (zpracování plateb
+        kartou u starších účtů — platby přes QR kód/bankovní převod jdou přímo na náš bankovní účet, bez
+        zapojení třetí strany), Resend (odesílání e-mailů), Vercel a Neon (hosting a databáze) a Google
+        (zobrazování reklam přes AdSense). Žádné osobní údaje neprodáváme třetím stranám.
       </p>
 
       <h2>Jak dlouho údaje uchováváme</h2>
