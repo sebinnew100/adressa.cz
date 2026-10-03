@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
 import { sendLifetimeAccessConfirmedEmail, sendProviderSalesPitchEmail, SalesPitchStage } from '@/lib/email';
 
@@ -24,28 +23,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { to, type, attachments } = await request.json();
+  const { to, type } = await request.json();
   if (!to || typeof to !== 'string') {
     return NextResponse.json({ error: 'Missing "to" address' }, { status: 400 });
   }
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ ok: false, reason: 'RESEND_API_KEY not set in this environment' }, { status: 200 });
-  }
-
-  if (type === 'file-backup' && Array.isArray(attachments)) {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: 'adressa.cz <noreply@adressa.cz>',
-      to,
-      subject: 'adressa.cz Play Store signing key — BACKUP',
-      html: '<p>Attached: your Play Store signing keystore and key info. Keep this email safe.</p>',
-      attachments: attachments.map((a: { filename: string; contentBase64: string }) => ({
-        filename: a.filename,
-        content: a.contentBase64,
-      })),
-    });
-    return NextResponse.json({ ok: !error, error });
   }
 
   const stages: SalesPitchStage[] = ['intro', 'waiting', 'hidden', 'followup'];
