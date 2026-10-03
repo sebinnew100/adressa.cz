@@ -62,10 +62,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5770800340894128"
           crossOrigin="anonymous"
         />
-        {/* Adsterra Popunder */}
-        <script src="https://pl31543561.profitableratecpmnetwork.com/a4/25/a0/a425a04b4b512a4bb908e561d8c32aaf.js" />
-        {/* Adsterra Social Bar */}
-        <script src="https://pl31543563.profitableratecpmnetwork.com/c1/08/ce/c108ce0d2dd18c0f37c3b004e5a8932e.js" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
