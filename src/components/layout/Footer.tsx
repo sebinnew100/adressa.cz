@@ -57,6 +57,7 @@ export function Footer() {
               <li><Link href="/faq" className="hover:text-brand transition-colors">{t.footer.links.faq}</Link></li>
               <li><Link href="/o-nas" className="hover:text-brand transition-colors">{language === 'cs' ? 'O nás' : 'About Us'}</Link></li>
               <li><Link href="/kontakt" className="hover:text-brand transition-colors">{language === 'cs' ? 'Kontakt' : 'Contact Us'}</Link></li>
+              <li><Link href="/kariera" className="hover:text-brand transition-colors">{language === 'cs' ? 'Kariéra' : 'Careers'}</Link></li>
             </ul>
           </div>
 
