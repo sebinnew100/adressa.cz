@@ -43,21 +43,34 @@ function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+// Deterministic per-provider offset (0-47h) so a cohort that got advanced
+// together (e.g. a big catch-up batch) doesn't stay permanently in lockstep,
+// hitting its next stage all on the same day forever. Spreads sends evenly
+// across ~2 days instead of a feast-then-silence pattern repeating every cycle.
+function jitterHours(providerId: string): number {
+  let hash = 0;
+  for (let i = 0; i < providerId.length; i++) hash = (hash * 31 + providerId.charCodeAt(i)) >>> 0;
+  return hash % 48;
+}
+
 // Given a provider's past pitch-stage contacts, figures out which stage is
 // due next and when. Returns null for a never-contacted provider (caller
 // handles that case separately as an 'intro' candidate).
-function nextDueStage(contacts: { type: string; sentAt: Date }[]): { stage: SalesPitchStage; dueAt: Date } | null {
+function nextDueStage(providerId: string, contacts: { type: string; sentAt: Date }[]): { stage: SalesPitchStage; dueAt: Date } | null {
   const relevant = contacts.filter(c => STAGE_ORDER.includes(c.type as SalesPitchStage));
   if (relevant.length === 0) return null;
   const last = [...relevant].sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime())[0];
+  const jitterMs = jitterHours(providerId) * 60 * 60 * 1000;
 
-  if (last.type === 'intro') return { stage: 'waiting', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
-  if (last.type === 'waiting') return { stage: 'hidden', dueAt: addDays(last.sentAt, INITIAL_STAGE_GAP_DAYS) };
+  const dueAt = (gapDays: number) => new Date(addDays(last.sentAt, gapDays).getTime() + jitterMs);
+
+  if (last.type === 'intro') return { stage: 'waiting', dueAt: dueAt(INITIAL_STAGE_GAP_DAYS) };
+  if (last.type === 'waiting') return { stage: 'hidden', dueAt: dueAt(INITIAL_STAGE_GAP_DAYS) };
   // From the 4th send (followup) onward, including the ongoing hidden/followup
   // alternation after that, cadence drops to once a week.
-  if (last.type === 'hidden') return { stage: 'followup', dueAt: addDays(last.sentAt, STEADY_STAGE_GAP_DAYS) };
+  if (last.type === 'hidden') return { stage: 'followup', dueAt: dueAt(STEADY_STAGE_GAP_DAYS) };
   // last.type === 'followup'
-  return { stage: 'hidden', dueAt: addDays(last.sentAt, STEADY_STAGE_GAP_DAYS) };
+  return { stage: 'hidden', dueAt: dueAt(STEADY_STAGE_GAP_DAYS) };
 }
 
 async function sendReport(result: {
@@ -121,7 +134,7 @@ async function runSalesAutopilot() {
   const scheduled: { fullName: string; email: string; stage: string; cityNameCz: string }[] = [];
   for (const p of scheduledDue) {
     if (!p.email) continue;
-    const stage: SalesPitchStage = nextDueStage(p.salesContacts)?.stage ?? 'intro';
+    const stage: SalesPitchStage = nextDueStage(p.id, p.salesContacts)?.stage ?? 'intro';
     const deadline = p.removalDeadline ?? new Date(now.getTime() + DEADLINE_DAYS * 24 * 60 * 60 * 1000);
     const { serviceNameCz, cityNameCz } = names(p.serviceId, p.cityId);
     try {
@@ -183,7 +196,7 @@ async function runSalesAutopilot() {
   const dueAdvances: { provider: typeof allLeads[number]; stage: SalesPitchStage; dueAt: Date }[] = [];
   for (const p of allLeads) {
     if (p.salesContacts.length === 0) continue;
-    const next = nextDueStage(p.salesContacts);
+    const next = nextDueStage(p.id, p.salesContacts);
     if (next && next.dueAt <= now) dueAdvances.push({ provider: p, stage: next.stage, dueAt: next.dueAt });
   }
   dueAdvances.sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime()); // most-overdue first
