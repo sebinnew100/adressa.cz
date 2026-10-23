@@ -4,6 +4,7 @@ import { sendProviderSalesPitchEmail, sendSalesAutopilotReportEmail, SalesPitchS
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
 import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
+import { SALES_EMAILS_PAUSED } from '@/lib/salesAutopilotConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,18 +92,12 @@ async function sendReport(result: {
   }
 }
 
-// Manual kill-switch — flip back to false to resume. Added to deliberately
-// stop all outbound sales-pitch emails (not just an accidental side effect
-// of the DB quota outage), e.g. while a GDPR opt-out request is being
-// handled or any other reason emails need to stay off regardless of DB state.
-const AUTOPILOT_PAUSED = true;
-
 export async function GET(request: NextRequest) {
   if (!requireAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (AUTOPILOT_PAUSED) {
+  if (SALES_EMAILS_PAUSED) {
     return NextResponse.json({ paused: true, message: 'Sales autopilot is manually paused — no emails sent.' });
   }
 
