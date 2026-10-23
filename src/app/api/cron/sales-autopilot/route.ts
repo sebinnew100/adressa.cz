@@ -7,12 +7,14 @@ import { KNOWN_TEST_PROVIDER_IDS } from '@/lib/salesJunkIds';
 
 export const dynamic = 'force-dynamic';
 
-// Full automated cadence: intro -> waiting -> hidden, 3 days apart (the
-// first 3 sends). From there on (followup, then hidden/followup forever)
-// it drops to once a week until the lead converts or an admin marks them
-// salesExempt.
-const INITIAL_STAGE_GAP_DAYS = 3;
-const STEADY_STAGE_GAP_DAYS = 7;
+// New (never-contacted) leads still get their first ('intro') email right
+// away. Everyone already contacted at least once advances to their next
+// stage no sooner than every 2 weeks — previously this was 3 days apart for
+// the first few stages (intro/waiting/hidden), which meant repeat contacts
+// 3 times in under 2 weeks. Flattened to a single steady cadence so already-
+// contacted leads get emailed at most once every 2 weeks, period.
+const INITIAL_STAGE_GAP_DAYS = 14;
+const STEADY_STAGE_GAP_DAYS = 14;
 const DEADLINE_DAYS = 7; // unrelated to send cadence — only controls the "will be removed by" date shown in copy.
 
 // Resend's real plan limit is 100 emails/day TOTAL, shared across every
@@ -89,9 +91,19 @@ async function sendReport(result: {
   }
 }
 
+// Manual kill-switch — flip back to false to resume. Added to deliberately
+// stop all outbound sales-pitch emails (not just an accidental side effect
+// of the DB quota outage), e.g. while a GDPR opt-out request is being
+// handled or any other reason emails need to stay off regardless of DB state.
+const AUTOPILOT_PAUSED = true;
+
 export async function GET(request: NextRequest) {
   if (!requireAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (AUTOPILOT_PAUSED) {
+    return NextResponse.json({ paused: true, message: 'Sales autopilot is manually paused — no emails sent.' });
   }
 
   try {
