@@ -4,6 +4,7 @@ import { COOKIE_NAME, getExpectedToken } from '@/lib/auth';
 import { sendProviderSalesPitchEmail, SalesPitchStage } from '@/lib/email';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
+import { SALES_EMAILS_PAUSED } from '@/lib/salesAutopilotConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (SALES_EMAILS_PAUSED) {
+    return NextResponse.json({ error: 'Sales emails are disabled.', results: [] }, { status: 403 });
+  }
+
   const { providerIds, stage } = await request.json();
   if (!Array.isArray(providerIds) || providerIds.length === 0) {
     return NextResponse.json({ error: 'Missing providerIds' }, { status: 400 });
@@ -32,9 +37,13 @@ export async function POST(request: NextRequest) {
     where: { id: { in: providerIds }, stripeSubscriptionId: null },
   });
 
-  const results: { providerId: string; status: 'sent' | 'skipped_no_email' | 'failed'; error?: string }[] = [];
+  const results: { providerId: string; status: 'sent' | 'skipped_no_email' | 'skipped_exempt' | 'failed'; error?: string }[] = [];
 
   for (const provider of providers) {
+    if (provider.salesExempt) {
+      results.push({ providerId: provider.id, status: 'skipped_exempt' });
+      continue;
+    }
     if (!provider.email) {
       results.push({ providerId: provider.id, status: 'skipped_no_email' });
       continue;

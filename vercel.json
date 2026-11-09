@@ -11,10 +11,6 @@
     {
       "path": "/api/cron/procurement-import",
       "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/sales-autopilot",
-      "schedule": "30 6 * * *"
     }
   ]
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SERVICES } from '@/data/services';
 import { CITIES } from '@/data/cities';
-import { NextRunCountdown } from '@/components/admin/NextRunCountdown';
+import { SALES_EMAILS_PAUSED } from '@/lib/salesAutopilotConfig';
 
 type Stage = 'intro' | 'waiting' | 'hidden' | 'followup';
 
@@ -227,20 +227,9 @@ export default function AdminSalesPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-wrap gap-4 mb-8">
-          <NextRunCountdown
-            label="Příští automatický běh (celá sekvence 1→4)"
-            hourUtc={20}
-            description={
-              data
-                ? `Osloví až 25 nikdy nekontaktovaných leadů fází 1️⃣ Úvod (zbývá ~${Math.max(0, data.stats.leads - data.stats.contacted)}) a posune všechny ostatní na jejich další splatnou fázi (max. 80 e-mailů/den celkem).`
-                : undefined
-            }
-          />
-        </div>
 
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-8 text-sm text-blue-300">
-          Sales autopilot běží automaticky každý den (Vercel Cron) a posílá celou sekvenci sám: <strong>1️⃣ Úvod → (2 dny) → 2️⃣ Čekají → (2 dny) → 3️⃣ Skryté → (2 dny) → 4️⃣ Follow-up</strong>, a poté se <strong>3️⃣</strong> a <strong>4️⃣</strong> střídají zhruba každé 3,5 dne (~2× týdně) až do konverze nebo vyloučení (🔒). Tlačítka níže jsou pro ruční zásahy mimo pořadí. E-maily uvádí 7denní lhůtu, ale profily se po vypršení <strong>automaticky neodstraňují</strong> — jde jen o motivační formulaci v textu e-mailu.
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-8 text-sm text-red-300">
+          🚫 <strong>Sales e-maily jsou vypnuté.</strong> Automatický cron byl odstraněn a ruční odesílání níže je zablokované na úrovni API — žádný sales e-mail se neodešle, dokud se to v kódu znovu nezapne.
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">
@@ -308,14 +297,16 @@ export default function AdminSalesPage() {
           </select>
           <button
             onClick={() => sendTo(Array.from(selected), bulkStage)}
-            disabled={selected.size === 0 || sending}
+            disabled={selected.size === 0 || sending || SALES_EMAILS_PAUSED}
+            title={SALES_EMAILS_PAUSED ? 'Sales e-maily jsou vypnuté' : undefined}
             className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
           >
             {sending ? 'Odesílám…' : `Odeslat vybraným (${selected.size})`}
           </button>
           <button
             onClick={() => sendTo(uncontactedIds, bulkStage)}
-            disabled={uncontactedIds.length === 0 || sending}
+            disabled={uncontactedIds.length === 0 || sending || SALES_EMAILS_PAUSED}
+            title={SALES_EMAILS_PAUSED ? 'Sales e-maily jsou vypnuté' : undefined}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
           >
             {sending ? 'Odesílám…' : `Odeslat všem neoslovením ve filtru (${uncontactedIds.length})`}
@@ -444,8 +435,8 @@ export default function AdminSalesPage() {
                               <button
                                 key={s.key}
                                 onClick={() => sendTo([lead.id], s.key)}
-                                disabled={sending}
-                                title={s.title}
+                                disabled={sending || lead.salesExempt || SALES_EMAILS_PAUSED}
+                                title={SALES_EMAILS_PAUSED ? 'Sales e-maily jsou vypnuté' : lead.salesExempt ? 'Vyloučeno z kampaně — odemkněte 🔓 pro odeslání' : s.title}
                                 className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-brand text-gray-300 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-40"
                               >
                                 {s.label}
