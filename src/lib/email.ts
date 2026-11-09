@@ -145,6 +145,7 @@ export async function sendProviderImportReportEmail(
     added: { fullName: string; serviceNameCz: string; cityNameCz: string }[];
     queries: string[];
     skippedDuplicates: number;
+    skippedNoEmail?: number;
     reason?: string;
     listingNotified?: number;
   },
@@ -156,15 +157,16 @@ export async function sendProviderImportReportEmail(
 
   const body = result.added.length > 0
     ? `
-      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.added.length} nových poskytovatelů z vyhledávání „${result.queries.join('“, „')}“:</p>
+      <p style="color:#555;margin-bottom:8px;">Dnes (${dateStr}) bylo automaticky přidáno ${result.added.length} nových poskytovatelů z vyhledávání „${result.queries.join('“, „')}“ — všichni s nalezeným e-mailem:</p>
       <ul style="padding-left:20px;color:#111;">
         ${result.added.map(p => `<li style="margin-bottom:6px;">${p.fullName} — ${p.serviceNameCz}, ${p.cityNameCz}</li>`).join('')}
       </ul>
       ${result.skippedDuplicates > 0 ? `<p style="color:#999;font-size:13px;">(${result.skippedDuplicates} nalezených firem už v katalogu existovalo, přeskočeno.)</p>` : ''}
+      ${result.skippedNoEmail ? `<p style="color:#999;font-size:13px;">(${result.skippedNoEmail} nalezených firem nemělo dohledatelný e-mail, přeskočeno — nepřidávají se bez e-mailu.)</p>` : ''}
     `
     : `<p style="color:#555;margin-bottom:16px;">Dnes nebyl přidán žádný nový poskytovatel. Důvod: ${result.reason || 'neznámý'}.</p>`;
 
-  const notifiedLine = `<p style="color:#555;margin-top:16px;">📧 Dnes byl odeslán informační e-mail o zapsání do katalogu ${result.listingNotified ?? 0} poskytovatelům (jen těm, kteří mají e-mail).</p>`;
+  const notifiedLine = `<p style="color:#555;margin-top:16px;">📧 Dnes byl odeslán informační e-mail o zapsání do katalogu ${result.listingNotified ?? 0} poskytovatelům.</p>`;
 
   const { error } = await resend.emails.send({
     from: 'adressa.cz <noreply@adressa.cz>',
@@ -304,233 +306,6 @@ export async function sendProcurementImportReportEmail(
 
   if (error) {
     console.error('sendProcurementImportReportEmail failed:', to, error);
-    return false;
-  }
-  return true;
-}
-
-export type SalesPitchStage = 'intro' | 'waiting' | 'hidden' | 'followup';
-
-const EXAMPLE_CUSTOMER_NAMES = ['Jana Nováková', 'Petr Svoboda', 'Lucie Dvořáková', 'Tomáš Procházka', 'Kateřina Černá', 'Martin Veselý', 'Eva Kučerová', 'Jakub Horák'];
-const EXAMPLE_MESSAGE_TEMPLATES = [
-  (service: string) => `Dobrý den, sháním spolehlivého odborníka na ${service}. Mohli byste mi prosím zavolat a domluvit termín?`,
-  (service: string) => `Dobrý den, potřebuji ${service} co nejdříve, ideálně tento týden. Jaké máte volné termíny?`,
-  (service: string) => `Zdravím, hledám někoho na ${service} — doporučili mi vás. Můžete mi prosím napsat cenovou nabídku?`,
-];
-
-function randomExampleLead(serviceNameCz: string) {
-  const name = EXAMPLE_CUSTOMER_NAMES[Math.floor(Math.random() * EXAMPLE_CUSTOMER_NAMES.length)];
-  const template = EXAMPLE_MESSAGE_TEMPLATES[Math.floor(Math.random() * EXAMPLE_MESSAGE_TEMPLATES.length)];
-  return { name, message: template(serviceNameCz.toLowerCase()) };
-}
-
-export async function sendProviderSalesPitchEmail(
-  provider: {
-    id: string; fullName: string; email: string; serviceNameCz: string; cityNameCz: string;
-    description?: string | null; picturePath?: string | null;
-  },
-  opts: { stage: SalesPitchStage; deadline: Date },
-): Promise<{ ok: boolean; error?: string }> {
-  const resend = getResend();
-  if (!resend) return { ok: false, error: 'RESEND_API_KEY not configured' };
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adressa.cz';
-  const activateUrl = `${baseUrl}/aktivovat/${provider.id}`;
-  const profileUrl = `${baseUrl}/providers/${provider.id}`;
-  const deadlineStr = opts.deadline.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' });
-  const service = provider.serviceNameCz;
-  const city = provider.cityNameCz;
-
-  const pricingList = `
-    <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-      <li>Jednorázová platba <strong>1 344 Kč</strong></li>
-      <li>Platí navždy — žádné další poplatky</li>
-    </ul>
-  `;
-
-  const footer = `
-    <p style="color:#999;font-size:12px;margin-top:32px;">
-      Pokud si profil na adressa.cz nepřejete, nemusíte nic dělat — bude po ${deadlineStr} automaticky odebrán.
-    </p>
-    <p style="color:#bbb;font-size:11px;margin-top:8px;">
-      Máte dotaz nebo si nepřejete dostávat tyto e-maily? Napište na <a href="mailto:customerserviceentfin@gmail.com" style="color:#bbb;">customerserviceentfin@gmail.com</a>.
-    </p>
-  `;
-
-  let subject: string;
-  let html: string;
-
-  if (opts.stage === 'intro') {
-    const lead = randomExampleLead(service);
-    const descriptionSnippet = provider.description
-      ? provider.description.length > 140 ? provider.description.slice(0, 140).trim() + '…' : provider.description
-      : null;
-    subject = `${provider.fullName}, vytvořili jsme pro vás profil na adressa.cz`;
-    html = emailShell(`
-      <h2 style="color:#111;margin:0 0 4px;">Vítejte na adressa.cz</h2>
-      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Ahoj <strong>${provider.fullName}</strong>, jsme adressa.cz — místo, kde lidé v ${city} hledají ${service.toLowerCase()}.
-        Váš profil jsme pro vás již vytvořili a je veřejně viditelný.
-      </p>
-      <div style="margin:20px 0;border:1px solid #eee;border-radius:12px;overflow:hidden;">
-        ${provider.picturePath ? `<img src="${provider.picturePath}" alt="${provider.fullName}" style="width:100%;height:160px;object-fit:cover;display:block;" />` : ''}
-        <div style="padding:18px;">
-          <p style="margin:0 0 4px;font-weight:700;color:#111;font-size:17px;">${provider.fullName}</p>
-          <p style="margin:0 0 10px;color:${BRAND_GREEN_DARK};font-size:13px;font-weight:600;">${service} · ${city}</p>
-          ${descriptionSnippet ? `<p style="margin:0 0 16px;color:#555;font-size:13px;line-height:1.5;">${descriptionSnippet}</p>` : ''}
-          <a href="${profileUrl}"
-             style="display:inline-block;background:#111;color:#fff;font-weight:700;padding:13px 26px;border-radius:8px;text-decoration:none;font-size:15px;">
-            👀 Zobrazit celý profil
-          </a>
-        </div>
-      </div>
-      <p style="color:#333;font-size:14px;line-height:1.6;">Co pro vás adressa.cz dělá:</p>
-      <ul style="color:#333;font-size:14px;line-height:1.9;padding-left:20px;">
-        <li>Zákazníci vás najdou přímo na Google i na webu</li>
-        <li>Poptávky chodí rovnou vám na e-mail</li>
-        <li>Profesní profil s recenzemi zvyšuje důvěru zákazníků</li>
-      </ul>
-      <div style="margin-top:20px;padding:16px;background:#f3faf6;border-radius:8px;border-left:3px solid ${BRAND_GREEN};">
-        <p style="margin:0 0 6px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.05em;">Nedávná poptávka pro váš obor</p>
-        <p style="margin:0 0 4px;font-weight:600;color:#111;font-size:14px;">${lead.name}</p>
-        <p style="margin:0;color:#333;font-size:14px;line-height:1.5;">„${lead.message}"</p>
-      </div>
-      <p style="color:#333;font-size:14px;line-height:1.6;margin-top:20px;">Zaplaťte jednorázový poplatek a začněte tyto poptávky dostávat:</p>
-      ${pricingList}
-      ${brandButton(activateUrl, 'Aktivovat profil')}
-      ${footer}
-    `);
-  } else if (opts.stage === 'waiting') {
-    subject = `${provider.fullName}, 8 lidí čeká na ${service.toLowerCase()} ve vašem okolí`;
-    html = emailShell(`
-      <h2 style="color:#111;margin:0 0 4px;">⏳ 8 lidí čeká na odpověď</h2>
-      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Aktuálně máme <strong>8 lidí</strong>, kteří hledají ${service.toLowerCase()} v okolí ${city} a čekají na odpověď od místního odborníka jako jste vy.
-      </p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Váš profil <strong>${provider.fullName}</strong> zatím není zaplacený, takže tyto poptávky nevidíte.
-      </p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">Zaplaťte jednorázový poplatek a začněte získávat zákazníky:</p>
-      ${pricingList}
-      ${brandButton(activateUrl, 'Chci tyto zákazníky')}
-      ${footer}
-    `);
-  } else if (opts.stage === 'hidden') {
-    subject = `10 skrytých poptávek čeká na vaši odpověď`;
-    html = emailShell(`
-      <h2 style="color:#111;margin:0 0 4px;">🔒 10 poptávek čeká, až si je odemknete</h2>
-      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Pro profil <strong>${provider.fullName}</strong> máme připraveno <strong>10 dalších poptávek</strong> na ${service.toLowerCase()} v ${city}, které jsou momentálně skryté.
-      </p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Jakmile zaplatíte, získáte k nim okamžitý přístup — natrvalo, bez dalších poplatků.
-      </p>
-      ${pricingList}
-      ${brandButton(activateUrl, 'Odemknout poptávky')}
-      ${footer}
-    `);
-  } else {
-    subject = `Poslední připomínka — nenechte si ujít zákazníky na adressa.cz`;
-    html = emailShell(`
-      <h2 style="color:#111;margin:0 0 4px;">⏰ Poslední připomínka</h2>
-      <p style="color:#777;font-size:13px;margin-bottom:24px;">katalog místních služeb</p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">
-        Chápeme, že jste zaneprázdnění — ale profil <strong>${provider.fullName}</strong> na adressa.cz stále čeká na platbu, a zákazníci hledající ${service.toLowerCase()} v ${city} mezitím míří jinam.
-      </p>
-      <p style="color:#333;font-size:14px;line-height:1.6;">Poslední šance zaplatit a zůstat viditelní natrvalo:</p>
-      ${pricingList}
-      ${brandButton(activateUrl, 'Aktivovat profil')}
-      ${footer}
-    `);
-  }
-
-  const { error } = await resend.emails.send({
-    from: 'adressa.cz <noreply@adressa.cz>',
-    to: provider.email,
-    replyTo: 'customerserviceentfin@gmail.com',
-    subject,
-    html,
-  });
-
-  if (error) {
-    console.error('sendProviderSalesPitchEmail failed:', provider.email, error);
-    return { ok: false, error: error.message ?? JSON.stringify(error) };
-  }
-  return { ok: true };
-}
-
-const STAGE_LABEL_CZ: Record<string, string> = {
-  intro: '1️⃣ Úvod',
-  waiting: '2️⃣ Čekají',
-  hidden: '3️⃣ Skryté',
-  followup: '4️⃣ Follow-up',
-};
-
-export async function sendSalesAutopilotReportEmail(
-  to: string,
-  result: {
-    scheduled: { fullName: string; email: string; stage: string; cityNameCz?: string }[];
-    sent: { fullName: string; email: string; stage: string; cityNameCz?: string }[];
-    pastDeadline: { fullName: string; email: string | null; cityNameCz?: string }[];
-    remainingNeverContacted: number;
-    gapWarning?: string;
-  },
-): Promise<boolean> {
-  const resend = getResend();
-  if (!resend) return false;
-
-  const dateStr = new Date().toLocaleDateString('cs-CZ', { dateStyle: 'long' });
-
-  const section = (title: string, rows: { fullName: string; email: string | null; cityNameCz?: string }[]) =>
-    rows.length === 0 ? '' : `
-      <p style="color:#111;font-weight:600;margin:20px 0 6px;">${title} (${rows.length})</p>
-      <ul style="padding-left:20px;color:#555;font-size:13px;line-height:1.7;">
-        ${rows.map(r => `<li>${r.fullName}${r.cityNameCz ? ` — ${r.cityNameCz}` : ''}${r.email ? ` — ${r.email}` : ''}</li>`).join('')}
-      </ul>
-    `;
-
-  const byStage = (rows: { fullName: string; email: string; stage: string; cityNameCz?: string }[]) => {
-    const groups = new Map<string, { fullName: string; email: string; cityNameCz?: string }[]>();
-    for (const r of rows) {
-      const list = groups.get(r.stage) ?? [];
-      list.push({ fullName: r.fullName, email: r.email, cityNameCz: r.cityNameCz });
-      groups.set(r.stage, list);
-    }
-    return Array.from(groups.entries())
-      .map(([stage, group]) => section(STAGE_LABEL_CZ[stage] ?? stage, group))
-      .join('');
-  };
-
-  const totalActions = result.scheduled.length + result.sent.length + result.pastDeadline.length;
-
-  const { error } = await resend.emails.send({
-    from: 'adressa.cz <noreply@adressa.cz>',
-    to,
-    subject: `Sales autopilot: ${result.sent.length + result.scheduled.length} osloveno, ${result.pastDeadline.length} po termínu – adressa.cz`,
-    html: emailShell(`
-      <h2 style="color:#111;margin:0 0 4px;">📊 Denní report sales autopilota</h2>
-      <p style="color:#777;font-size:13px;margin-bottom:8px;">${dateStr}</p>
-      <p style="color:#111;font-size:14px;font-weight:600;">
-        Celkem odesláno dnes: ${result.sent.length + result.scheduled.length} e-mailů
-      </p>
-      <p style="color:#111;font-size:14px;">Nikdy neosloveno: <strong>${result.remainingNeverContacted}</strong> profilů</p>
-      ${result.gapWarning ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin:12px 0;font-size:13px;">${result.gapWarning}</p>` : ''}
-      ${result.scheduled.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">📅 Naplánováno strategicky (${result.scheduled.length})</p>${byStage(result.scheduled)}` : ''}
-      ${result.sent.length ? `<p style="color:#111;font-weight:600;margin:20px 0 6px;">✉️ Automaticky odesláno (${result.sent.length})</p>${byStage(result.sent)}` : ''}
-      ${section('⏰ Po termínu, ale NEODEBRÁNO (žádná akce)', result.pastDeadline)}
-      ${totalActions === 0
-        ? '<p style="color:#555;font-size:14px;margin-top:16px;">Dnes nebyla žádná akce potřeba.</p>' : ''}
-      <p style="color:#999;font-size:12px;margin-top:32px;">
-        Tento e-mail byl odeslán automaticky po dokončení denního běhu sales autopilota.
-      </p>
-    `),
-  });
-
-  if (error) {
-    console.error('sendSalesAutopilotReportEmail failed:', to, error);
     return false;
   }
   return true;
